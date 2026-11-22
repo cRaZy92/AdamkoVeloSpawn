@@ -1,0 +1,59 @@
+# AdamkoVeloSpawn configuration
+# Every server named here must also be registered in velocity.toml.
+# velocity.toml should have: try = ["waiting"]
+
+panel:
+  url: "http://<host>"        # Pelican, internal address (no trailing slash needed)
+  api-key: "plcn_..."                 # client key of velocity-bot (start/stop only)
+
+servers:
+  auth: limbo                         # VeloAuth's login limbo
+  waiting: waiting                    # always-on waiting room (PicoLimbo)
+  newest: s3                          # the only line to change when s4 arrives
+  seasons:
+    s3:
+      panel-id: "test0003"
+      display-name: "Season 3"
+      idle-shutdown-minutes: 15       # 0 disables idle shutdown for this season
+      join-delay-seconds: 5           # settle time after the server answers pings
+    s2:
+      panel-id: "test0002"
+      display-name: "Season 2"
+      idle-shutdown-minutes: 15
+      join-delay-seconds: 15
+
+routing:
+  remember-last-server: true
+  prestart-on-connect: true           # start target while the player types /login
+
+startup:
+  timeout-seconds: 180
+  poll-interval-seconds: 2
+  ping-timeout-ms: 1000               # live readiness ping; never decide from a stale cache
+
+chat:
+  enabled: false                      # network chat, /msg, /r, join/leave lines
+  # Messages are forwarded to players on OTHER servers; players on the same
+  # server see the backend's own chat line (signed chat is never cancelled).
+  format: "<gray>[{server}]</gray> {prefix}{player}<gray>:</gray> {message}"
+  join-format: "<gray>[<green>+</green>] {player} joined {server}"
+  leave-format: "<gray>[<red>-</red>] {player} left the network"
+  exclude-servers: [limbo, waiting]
+  discord-webhook: ""                 # optional; chat + join/leave mirrored there
+
+messages:                             # MiniMessage, all player-facing text lives here
+  starting-actionbar: "<yellow>Starting {display}… {elapsed}s"
+  ready: "<green>{display} is ready, moving you…"
+  start-failed: "<red>{display} didn't start. Try again in a minute or ping Adam."
+  panel-unreachable: "<red>The panel is unreachable, {display} can't be started right now. Ping Adam."
+  move-failed: "<red>Couldn't move you to {display}. Type <white>/play {season}</white> to try again."
+  season-down: "<red>{display} went down.</red> <gray>Type <white>/play {season}</white> to start it again."
+  kicked-to-waiting: "<yellow>You were sent to the waiting room from {display}.</yellow> <gray>Type <white>/play {season}</white> to go back."
+  unknown-season: "<red>Unknown season <white>{season}</white>. Seasons: {seasons}"
+  already-there: "<gray>You are already on {display}."
+  msg-sent: "<gray>[me → <white>{target}</white>]</gray> {message}"
+  msg-received: "<gray>[<white>{sender}</white> → me]</gray> {message}"
+  msg-player-not-found: "<red>Player <white>{target}</white> is not online."
+  msg-no-reply: "<red>Nobody to reply to."
+  msg-usage: "<red>Usage: /msg \\<player> \\<message>"
+  reply-usage: "<red>Usage: /r \\<message>"
