@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 /**
@@ -38,11 +39,18 @@ public final class WaitQueue {
     private final Supplier<PluginConfig> config;
     private final SeasonManager seasons;
     private final Messages messages;
+    private final LongSupplier clock;
     private final Map<UUID, Waiter> waiters = new ConcurrentHashMap<>();
     private volatile ScheduledTask ticker;
 
     public WaitQueue(Object plugin, ProxyServer proxy, Logger logger, Supplier<PluginConfig> config,
                      SeasonManager seasons, Messages messages) {
+        this(plugin, proxy, logger, config, seasons, messages, System::currentTimeMillis);
+    }
+
+    public WaitQueue(Object plugin, ProxyServer proxy, Logger logger, Supplier<PluginConfig> config,
+                     SeasonManager seasons, Messages messages, LongSupplier clock) {
+        this.clock = clock;
         this.plugin = plugin;
         this.proxy = proxy;
         this.logger = logger;
@@ -66,7 +74,7 @@ public final class WaitQueue {
     }
 
     public void enqueue(Player player, String season, String hold) {
-        Waiter w = new Waiter(player.getUniqueId(), season, hold, System.currentTimeMillis());
+        Waiter w = new Waiter(player.getUniqueId(), season, hold, clock.getAsLong());
         Waiter previous = waiters.put(w.player(), w);
         if (previous == null || !previous.season().equals(season)) {
             logger.info("{} is waiting for {} (held on {})", player.getUsername(), season, hold);
@@ -186,7 +194,7 @@ public final class WaitQueue {
 
     private void sendActionBar(Player p, Waiter w) {
         long elapsed = seasons.startElapsedSeconds(w.season())
-                .orElse((System.currentTimeMillis() - w.sinceMillis()) / 1000);
+                .orElse((clock.getAsLong() - w.sinceMillis()) / 1000);
         p.sendActionBar(messages.get("starting-actionbar",
                 "display", display(w.season()), "season", w.season(), "elapsed", elapsed));
     }

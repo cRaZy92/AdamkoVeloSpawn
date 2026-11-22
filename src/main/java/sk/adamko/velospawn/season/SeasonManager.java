@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import org.slf4j.Logger;
 import sk.adamko.velospawn.config.PluginConfig;
+import sk.adamko.velospawn.pelican.PanelApi;
 import sk.adamko.velospawn.pelican.PelicanClient;
 import sk.adamko.velospawn.pelican.PelicanClient.State;
 
@@ -14,6 +15,7 @@ import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -46,15 +48,16 @@ public final class SeasonManager {
     private static final class StartAttempt {
         final String season;
         final CompletableFuture<Outcome> future = new CompletableFuture<>();
-        final long startedAtMillis = System.currentTimeMillis();
+        final long startedAtMillis;
         final long deadlineMillis;
         volatile boolean startSent;
         volatile boolean sawBooting;
         volatile State lastState = State.UNKNOWN;
         volatile ScheduledTask pending;
 
-        StartAttempt(String season, long deadlineMillis) {
+        StartAttempt(String season, long startedAtMillis, long deadlineMillis) {
             this.season = season;
+            this.startedAtMillis = startedAtMillis;
             this.deadlineMillis = deadlineMillis;
         }
     }
@@ -63,13 +66,21 @@ public final class SeasonManager {
     private final ProxyServer proxy;
     private final Logger logger;
     private final Supplier<PluginConfig> config;
-    private final Supplier<PelicanClient> pelican;
+    private final Supplier<? extends PanelApi> pelican;
+    private final LongSupplier clock;
     private final Map<String, Runtime> runtimes = new ConcurrentHashMap<>();
     private volatile Predicate<String> hasWaiters = s -> false;
     private volatile ScheduledTask sweepTask;
 
     public SeasonManager(Object plugin, ProxyServer proxy, Logger logger,
-                         Supplier<PluginConfig> config, Supplier<PelicanClient> pelican) {
+                         Supplier<PluginConfig> config, Supplier<? extends PanelApi> pelican) {
+        this(plugin, proxy, logger, config, pelican, System::currentTimeMillis);
+    }
+
+    /** {@code clock} is wall time in millis; injectable for tests. */
+    public SeasonManager(Object plugin, ProxyServer proxy, Logger logger,
+                         Supplier<PluginConfig> config, Supplier<? extends PanelApi> pelican, LongSupplier clock) {
+        this.clock = clock;
         this.plugin = plugin;
         this.proxy = proxy;
         this.logger = logger;
@@ -153,7 +164,7 @@ public final class SeasonManager {
         long sent = rt.stopSentMillis;
         if (sent != 0) {
             if (st.panelState() == State.STOPPING || st.panelState() == State.OFFLINE
-                    || System.currentTimeMillis() - sent > STOP_GRACE_MILLIS) {
+                    || clock.getAsLong() - sent > STOP_GRACE_MILLIS) {
                 rt.stopSentMillis = 0; // the stop has been observed (or it never happened)
             }
             if (st.panelState() != State.OFFLINE && rt.stopSentMillis != 0) {
@@ -167,7 +178,7 @@ public final class SeasonManager {
     }
 
     private void markStopSent(String season) {
-        rt(season).stopSentMillis = System.currentTimeMillis();
+        rt(season).stopSentMillis = clock.getAsLong();
     }
 
     // ------------------------------------------------------------------ starting
@@ -179,7 +190,7 @@ public final class SeasonManager {
     public OptionalLong startElapsedSeconds(String season) {
         StartAttempt a = rt(season).start;
         return a == null ? OptionalLong.empty()
-                : OptionalLong.of((System.currentTimeMillis() - a.startedAtMillis) / 1000);
+                : OptionalLong.of((clock.getAsLong() - a.startedAtMillis) / 1000);
     }
 
     /**
@@ -197,7 +208,8 @@ public final class SeasonManager {
             if (rt.start != null) {
                 return rt.start.future;
             }
-            attempt = new StartAttempt(season, System.currentTimeMillis() + cfg.startupTimeoutSeconds() * 1000L);
+            long now = clock.getAsLong();
+            attempt = new StartAttempt(season, now, now + cfg.startupTimeoutSeconds() * 1000L);
             rt.start = attempt;
         }
         cancelIdle(season);
@@ -251,7 +263,7 @@ public final class SeasonManager {
         if (a.future.isDone()) {
             return;
         }
-        if (System.currentTimeMillis() > a.deadlineMillis) {
+        if (clock.getAsLong() > a.deadlineMillis) {
             logger.warn("Start of {} timed out after {}s; last panel state: {}",
                     a.season, config.get().startupTimeoutSeconds(), a.lastState);
             finish(a, Outcome.TIMEOUT);
@@ -310,7 +322,7 @@ public final class SeasonManager {
             p.cancel();
         }
         if (a.future.complete(outcome)) {
-            long took = (System.currentTimeMillis() - a.startedAtMillis) / 1000;
+            long took = (clock.getAsLong() - a.startedAtMillis) / 1000;
             logger.info("{} start finished: {} ({}s)", a.season, outcome, took);
         }
     }
@@ -337,7 +349,7 @@ public final class SeasonManager {
         if (rt.idleTask == null) {
             return OptionalLong.empty();
         }
-        return OptionalLong.of(Math.max(0, (rt.idleDeadlineMillis - System.currentTimeMillis()) / 1000));
+        return OptionalLong.of(Math.max(0, (rt.idleDeadlineMillis - clock.getAsLong()) / 1000));
     }
 
     public int playerCount(String season) {
@@ -384,7 +396,7 @@ public final class SeasonManager {
             if (rt.idleTask != null) {
                 return;
             }
-            rt.idleDeadlineMillis = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(minutes);
+            rt.idleDeadlineMillis = clock.getAsLong() + TimeUnit.MINUTES.toMillis(minutes);
             rt.idleTask = proxy.getScheduler().buildTask(plugin, () -> fireIdle(season))
                     .delay(minutes, TimeUnit.MINUTES)
                     .schedule();

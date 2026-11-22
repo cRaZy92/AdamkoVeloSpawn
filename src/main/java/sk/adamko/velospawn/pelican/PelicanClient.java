@@ -16,7 +16,7 @@ import java.util.concurrent.CompletionException;
  * Minimal async Pelican client-API wrapper: power signals and current state.
  * All calls are non-blocking; failures complete exceptionally with {@link PanelException}.
  */
-public final class PelicanClient {
+public final class PelicanClient implements PanelApi {
 
     public enum State { OFFLINE, STARTING, RUNNING, STOPPING, UNKNOWN }
 
@@ -49,6 +49,7 @@ public final class PelicanClient {
                 .build();
     }
 
+    @Override
     public CompletableFuture<State> state(String serverId) {
         HttpRequest req = base("/api/client/servers/" + serverId + "/resources").GET().build();
         return send(req).thenApply(resp -> {
@@ -60,6 +61,7 @@ public final class PelicanClient {
         });
     }
 
+    @Override
     public CompletableFuture<Void> power(String serverId, String signal) {
         HttpRequest req = base("/api/client/servers/" + serverId + "/power")
                 .header("Content-Type", "application/json")
