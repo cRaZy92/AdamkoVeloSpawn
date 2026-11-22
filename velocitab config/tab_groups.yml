@@ -1,0 +1,123 @@
+# ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+# ┃     Velocitab Tab Groups     ┃
+# ┃  by William278 & AlexDev03   ┃
+# ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+# ┣╸ Information: https://william278.net/project/velocitab
+# ┗╸ Documentation: https://william278.net/docs/velocitab
+
+# One group per season so the footer can name the season ("you are on Season 2") while the
+# player lines keep the short tag ([S2]). show_all_players_from_all_groups: true in config.yml
+# puts everyone from all groups into one network-wide list. Groups are listed in display order.
+groups:
+- name: s1
+  headers:
+  - '<newline><gradient:#ffd700:#ff8c00><bold>Country Roads MC</bold></gradient><newline>'
+  footers:
+  - '<newline><gray>%players_online% online</gray> <dark_gray>·</dark_gray> <gray>you are on</gray> <#55ff55>Season 1</#55ff55> <dark_gray>·</dark_gray> <gray>%ping% ms</gray><newline>'
+  format: '<dark_gray>[</dark_gray><#55ff55>S1</#55ff55><dark_gray>]</dark_gray> <white>%prefix%%username%</white>'
+  nametag:
+    prefix: ''
+    suffix: ''
+  servers:
+  - s1
+  sorting_placeholders:
+  - '%server_group_index%'
+  - '%role_weight%'
+  - '%username_lower%'
+  placeholder_replacements: {}
+  collisions: false
+  header_footer_update_rate: 1000
+  format_update_rate: 1000
+  nametag_update_rate: 1000
+  placeholder_update_rate: 1000
+  only_list_players_in_same_server: false
+- name: s2
+  headers:
+  - '<newline><gradient:#ffd700:#ff8c00><bold>Country Roads MC</bold></gradient><newline>'
+  footers:
+  - '<newline><gray>%players_online% online</gray> <dark_gray>·</dark_gray> <gray>you are on</gray> <#55ffff>Season 2</#55ffff> <dark_gray>·</dark_gray> <gray>%ping% ms</gray><newline>'
+  format: '<dark_gray>[</dark_gray><#55ffff>S2</#55ffff><dark_gray>]</dark_gray> <white>%prefix%%username%</white>'
+  nametag:
+    prefix: ''
+    suffix: ''
+  servers:
+  - s2
+  sorting_placeholders:
+  - '%server_group_index%'
+  - '%role_weight%'
+  - '%username_lower%'
+  placeholder_replacements: {}
+  collisions: false
+  header_footer_update_rate: 1000
+  format_update_rate: 1000
+  nametag_update_rate: 1000
+  placeholder_update_rate: 1000
+  only_list_players_in_same_server: false
+- name: s3
+  headers:
+  - '<newline><gradient:#ffd700:#ff8c00><bold>Country Roads MC</bold></gradient><newline>'
+  footers:
+  - '<newline><gray>%players_online% online</gray> <dark_gray>·</dark_gray> <gray>you are on</gray> <#ffaa00>Season 3</#ffaa00> <dark_gray>·</dark_gray> <gray>%ping% ms</gray><newline>'
+  format: '<dark_gray>[</dark_gray><#ffaa00>S3</#ffaa00><dark_gray>]</dark_gray> <white>%prefix%%username%</white>'
+  nametag:
+    prefix: ''
+    suffix: ''
+  servers:
+  - s3
+  sorting_placeholders:
+  - '%server_group_index%'
+  - '%role_weight%'
+  - '%username_lower%'
+  placeholder_replacements: {}
+  collisions: false
+  header_footer_update_rate: 1000
+  format_update_rate: 1000
+  nametag_update_rate: 1000
+  placeholder_update_rate: 1000
+  only_list_players_in_same_server: false
+- name: waiting
+  headers:
+  - '<newline><gradient:#ffd700:#ff8c00><bold>Country Roads MC</bold></gradient><newline>'
+  footers:
+  - '<newline><gray>%players_online% online</gray> <dark_gray>·</dark_gray> <gray>you are in the</gray> <gray>waiting room</gray> <dark_gray>·</dark_gray> <gray>%ping% ms</gray><newline>'
+  format: '<dark_gray>[</dark_gray><gray>⌛</gray><dark_gray>]</dark_gray> <white>%prefix%%username%</white>'
+  nametag:
+    prefix: ''
+    suffix: ''
+  servers:
+  - waiting
+  sorting_placeholders:
+  - '%server_group_index%'
+  - '%role_weight%'
+  - '%username_lower%'
+  placeholder_replacements: {}
+  collisions: false
+  header_footer_update_rate: 1000
+  format_update_rate: 1000
+  nametag_update_rate: 1000
+  placeholder_update_rate: 1000
+  only_list_players_in_same_server: false
+
+# Velocitab needs a group named like fallback_group ("default") to exist, even with the fallback
+# disabled, or it throws "No default tab group defined". This one only covers limbo: players there
+# (not logged in yet) see only each other and nobody else sees them.
+- name: default
+  headers:
+  - ''
+  footers:
+  - ''
+  format: '<gray>%username%</gray>'
+  nametag:
+    prefix: ''
+    suffix: ''
+  servers:
+  - limbo
+  sorting_placeholders:
+  - '%username_lower%'
+  placeholder_replacements: {}
+  collisions: false
+  header_footer_update_rate: 1000
+  format_update_rate: 1000
+  nametag_update_rate: 1000
+  placeholder_update_rate: 1000
+  only_list_players_in_same_server: true
