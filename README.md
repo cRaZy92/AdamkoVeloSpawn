@@ -181,11 +181,11 @@ Use `/avs status` before each test to confirm the starting state; `/avs stop s3`
    B gets `panel-unreachable`, console shows one error per attempt, no repeated start calls.
 10. **Proxy restart** — restart Velocity: `last-servers.json` kept; running empty seasons get an idle
     timer within a minute (`/avs status`).
+11. *(milestone 4)* `chat.enabled: true`, `/avs reload`: A on s3, B on s2 — chat crosses with
+    `[s3]`/`[s2]` prefix, `/msg`, `/r` work across servers, join/leave lines show on the other server.
 12. *(map mods)* With Xaero's Minimap: join s3, walk a bit, `/server s2` — Xaero's shows a separate, empty
     map for s2; back on s3 the s3 map is intact. Die / use a portal: within ~5 s the map is still s3's.
     With JourneyMap or VoxelMap the same, without the delay.
-11. *(milestone 4)* `chat.enabled: true`, `/avs reload`: A on s3, B on s2 — chat crosses with
-    `[s3]`/`[s2]` prefix, `/msg`, `/r` work across servers, join/leave lines show on the other server.
 
 ## Cut-over from VelocityPteroPower
 
