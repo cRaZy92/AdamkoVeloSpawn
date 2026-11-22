@@ -64,6 +64,14 @@ chat:
     join: "➡️ {player} has joined {display}!"
     switch: "🔀 {player} moved to {display}"
     leave: "⬅️ {player} has left!"
+    # Discord → Minecraft (optional): a bot reads one channel and shows its messages on the seasons.
+    # Any bot works, e.g. the one EssentialsX Discord used. In the Developer Portal turn on
+    # "Message Content Intent" (Bot → Privileged Gateway Intents); the bot needs "View Channel" and
+    # "Read Message History" there. channel-id: right-click the channel → Copy Channel ID (Developer Mode).
+    bot-token: ""
+    channel-id: ""
+    # {name}: Discord nickname in their role colour; {message}: the text (shown as plain text).
+    to-minecraft: "<#5865f2>[Discord]</#5865f2> {name}<gray>:</gray> {message}"
 
 messages:                             # MiniMessage, all player-facing text lives here
   starting-actionbar: "<yellow>Starting {display}… {elapsed}s"

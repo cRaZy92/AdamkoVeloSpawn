@@ -148,6 +148,30 @@ public final class ChatService {
         discord.leave(player.getUsername(), server, display(server));
     }
 
+    // ------------------------------------------------------------------ Discord -> Minecraft
+
+    /** A message from the Discord channel: shown to everyone on a non-excluded server. */
+    public void fromDiscord(DiscordBot.Chat message) {
+        if (!enabled()) {
+            return;
+        }
+        String template = config.get().chat().discord().toMinecraft();
+        if (template == null || template.isBlank()) {
+            return;
+        }
+        Component name = message.color() == null
+                ? Component.text(message.name())
+                : Component.text(message.name(), net.kyori.adventure.text.format.TextColor.color(message.color()));
+        Component line = Messages.render(template, "name", name, "message", message.text());
+        for (Player p : proxy.getAllPlayers()) {
+            Optional<String> s = serverOf(p);
+            if (s.isPresent() && !excluded(s.get())) {
+                p.sendMessage(line);
+            }
+        }
+        logger.info("[discord] {}: {}", message.name(), message.text());
+    }
+
     /** Everyone on a non-excluded server other than {@code sourceServer} (they already saw it locally). */
     private void broadcastToOthers(Component line, String sourceServer) {
         if (line.equals(Component.empty())) {

@@ -10,6 +10,7 @@ import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import org.slf4j.Logger;
 import sk.adamko.velospawn.chat.ChatService;
+import sk.adamko.velospawn.chat.DiscordBot;
 import sk.adamko.velospawn.command.AvsCommand;
 import sk.adamko.velospawn.command.PlayCommand;
 import sk.adamko.velospawn.config.ConfigLoader;
@@ -56,6 +57,7 @@ public final class AdamkoVeloSpawn {
     private LastServerStore lastServers;
     private Router router;
     private ChatService chat;
+    private DiscordBot discordBot;
     private MapIdService mapIds;
 
     @Inject
@@ -96,6 +98,9 @@ public final class AdamkoVeloSpawn {
                 new AvsCommand(this));
         commands.register(commands.metaBuilder("play").plugin(this).build(), new PlayCommand(this));
         chat.registerCommands();
+        discordBot = new DiscordBot(logger, () -> this.config.chat().discord(), () -> this.config.chat().enabled(),
+                chat::fromDiscord);
+        discordBot.apply();
 
         queue.startTicker();
         seasons.startSweeper(); // re-arms idle shutdown for seasons that kept running over a proxy restart
@@ -118,6 +123,9 @@ public final class AdamkoVeloSpawn {
         if (mapIds != null) {
             mapIds.stop();
         }
+        if (discordBot != null) {
+            discordBot.shutdown();
+        }
         if (lastServers != null) {
             lastServers.save();
         }
@@ -133,6 +141,7 @@ public final class AdamkoVeloSpawn {
         seasons.retainConfigured();
         chat.registerCommands();
         mapIds.start();
+        discordBot.apply();
         logger.info("Config reloaded: seasons {}, newest {}", fresh.seasonNames(), fresh.newest());
     }
 

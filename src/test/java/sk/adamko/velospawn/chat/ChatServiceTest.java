@@ -126,7 +126,7 @@ class ChatServiceTest {
             var chat = new sk.adamko.velospawn.config.PluginConfig.ChatConfig(true, c.chat().format(),
                     c.chat().joinFormat(), c.chat().leaveFormat(), c.chat().excludeServers(),
                     new sk.adamko.velospawn.config.PluginConfig.DiscordConfig(d.webhook(), d.username(), d.avatar(),
-                            d.chat(), d.join(), "", d.leave()));
+                            d.chat(), d.join(), "", d.leave(), d.botToken(), d.channelId(), d.toMinecraft()));
             return new sk.adamko.velospawn.config.PluginConfig(c.panelUrl(), c.apiKey(), c.authServer(),
                     c.waitingServer(), c.newest(), c.seasons(), c.rememberLastServer(), c.prestartOnConnect(),
                     c.startupTimeoutSeconds(), c.pollIntervalSeconds(), c.pingTimeoutMs(), chat, c.messages(),
@@ -154,6 +154,27 @@ class ChatServiceTest {
         net.running("s3");
         net.login("Ann");
         assertTrue(net.discordPosts.isEmpty());
+    }
+
+    @Test
+    void discordMessagesReachEverySeasonButNotTheWaitingRooms() {
+        net.enableChat();
+        FakePlayer ann = on("Ann", "s3");
+        FakePlayer bob = on("Bob", "s1");
+        FakePlayer dan = on("Dan", "waiting");
+        FakePlayer eve = on("Eve", "limbo");
+        net.chat.fromDiscord(new DiscordBot.Chat("Brodykus", 0x55ff55, "hi <red>everyone"));
+        assertEquals(List.of("[Discord] Brodykus: hi <red>everyone"), ann.chat(), "text stays literal");
+        assertEquals(ann.chat(), bob.chat());
+        assertTrue(dan.chat().isEmpty());
+        assertTrue(eve.chat().isEmpty());
+    }
+
+    @Test
+    void discordMessagesOffWhenChatIsOff() {
+        FakePlayer ann = on("Ann", "s3");
+        net.chat.fromDiscord(new DiscordBot.Chat("Brodykus", null, "hi"));
+        assertTrue(ann.chat().isEmpty());
     }
 
     @Test

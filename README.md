@@ -121,6 +121,12 @@ checks off), never by IP — behind a tunnel such as Pangolin every player arriv
   in chat are escaped, `@` mentions are disabled, and posts go out in order (a rate limit is retried once).
   The older `discord-webhook` key still works. Deaths, advancements and AFK happen on the backends, so the proxy
   can't see them.
+- Discord → Minecraft: set `chat.discord.bot-token` and `channel-id` and a bot (e.g. the one EssentialsX
+  Discord used) reads that channel. Messages show on every season (not limbo/waiting) as `to-minecraft`,
+  `[Discord] Name: text` by default, with the name in the member's role colour. Bots and webhooks are
+  ignored, so the plugin's own posts never echo back. The bot needs **Message Content Intent** (Developer
+  Portal → Bot → Privileged Gateway Intents), plus View Channel and Read Message History; the console says
+  which one is missing. JDA is bundled (relocated), so the jar is about 13 MB.
 
 ## Map mods (Xaero's, JourneyMap, VoxelMap)
 

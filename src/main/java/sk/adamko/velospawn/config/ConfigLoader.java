@@ -64,7 +64,10 @@ public final class ConfigLoader {
                 d.node("chat").getString(""),
                 d.node("join").getString(""),
                 d.node("switch").getString(""),
-                d.node("leave").getString(""));
+                d.node("leave").getString(""),
+                d.node("bot-token").getString("").trim(),
+                d.node("channel-id").getString("").trim(),
+                d.node("to-minecraft").getString(""));
     }
 
     static ConfigurationNode loadDefaults() throws ConfigurateException {

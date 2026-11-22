@@ -63,9 +63,12 @@ public record PluginConfig(
             String chat,
             String join,
             String switchServer,
-            String leave) {
+            String leave,
+            String botToken,
+            String channelId,
+            String toMinecraft) {
 
-        public static final DiscordConfig NONE = new DiscordConfig("", "", "", "", "", "", "");
+        public static final DiscordConfig NONE = new DiscordConfig("", "", "", "", "", "", "", "", "", "");
 
         public boolean enabled() {
             return webhook != null && !webhook.isBlank();

@@ -161,7 +161,7 @@ public final class TestNetwork {
 
     private static PluginConfig.DiscordConfig withWebhook(PluginConfig.DiscordConfig d) {
         return new PluginConfig.DiscordConfig("https://discord.test/api/webhooks/1/x", d.username(), d.avatar(),
-                d.chat(), d.join(), d.switchServer(), d.leave());
+                d.chat(), d.join(), d.switchServer(), d.leave(), d.botToken(), d.channelId(), d.toMinecraft());
     }
 
     /** Discord posts as "username | content". */

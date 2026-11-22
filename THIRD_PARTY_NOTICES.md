@@ -22,3 +22,22 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+The plugin jar bundles (relocated under `sk.adamko.velospawn.lib`) the following libraries for the
+Discord bot. Each is used under its own license; source is available at the links.
+
+| Library | License | Source |
+|---|---|---|
+| JDA 6.7.0 | Apache License 2.0 | https://github.com/discord-jda/JDA |
+| OkHttp, Okio | Apache License 2.0 | https://github.com/square/okhttp, https://github.com/square/okio |
+| Kotlin standard library | Apache License 2.0 | https://github.com/JetBrains/kotlin |
+| JetBrains Annotations | Apache License 2.0 | https://github.com/JetBrains/java-annotations |
+| Jackson (core, databind, annotations) | Apache License 2.0 | https://github.com/FasterXML/jackson |
+| nv-websocket-client | Apache License 2.0 | https://github.com/TakahikoKawasaki/nv-websocket-client |
+| Apache Commons Collections 4 | Apache License 2.0 | https://commons.apache.org/proper/commons-collections/ |
+| Trove4j 3.1.0 | GNU LGPL 2.1 | https://bitbucket.org/trove4j/trove |
+
+Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0
+GNU LGPL 2.1: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
