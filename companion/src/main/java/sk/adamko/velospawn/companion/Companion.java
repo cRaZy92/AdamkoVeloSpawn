@@ -12,6 +12,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerAdvancementDoneEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerRegisterChannelEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.nio.charset.StandardCharsets;
@@ -22,7 +24,13 @@ import java.nio.charset.StandardCharsets;
  * changed on this server.
  *
  * <p>Wire format (UTF-8 JSON, one message per event):
- * {@code {"v":1,"type":"afk|death|advancement","player":"Steve","uuid":"…","afk":true,"text":"…"}}
+ * {@code {"v":1,"type":"world|afk|death|advancement","player":"Steve","uuid":"…","world":"world_nether",
+ * "env":"NETHER","afk":true,"text":"…"}}. Every message carries the player's current world; "world" is sent
+ * on its own when the player arrives and whenever they change worlds.
+ *
+ * <p>Paper only sends plugin messages on channels the player's connection has registered. A vanilla client
+ * never registers ours, so the proxy registers it on the player's behalf right after each server switch;
+ * {@link #onChannelRegistered} is the moment messages can flow.
  */
 public final class Companion extends JavaPlugin implements Listener {
 
@@ -43,6 +51,19 @@ public final class Companion extends JavaPlugin implements Listener {
         } else {
             getLogger().info("Forwarding deaths and advancements to the proxy (EssentialsX not found: no AFK)");
         }
+    }
+
+    /** The proxy registered our channel for this player: from now on messages reach it. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onChannelRegistered(PlayerRegisterChannelEvent event) {
+        if (CHANNEL.equals(event.getChannel())) {
+            send(event.getPlayer(), "world", null, null);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        send(event.getPlayer(), "world", null, null);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -68,14 +89,16 @@ public final class Companion extends JavaPlugin implements Listener {
     }
 
     void send(Player player, String type, String text, Boolean afk) {
-        if (!player.isOnline()) {
-            return; // plugin messages travel over the player's own connection
+        if (!player.isOnline() || !player.getListeningPluginChannels().contains(CHANNEL)) {
+            return; // plugin messages travel over the player's own connection, once the proxy registered it
         }
         JsonObject o = new JsonObject();
         o.addProperty("v", 1);
         o.addProperty("type", type);
         o.addProperty("player", player.getName());
         o.addProperty("uuid", player.getUniqueId().toString());
+        o.addProperty("world", player.getWorld().getName());
+        o.addProperty("env", player.getWorld().getEnvironment().name());
         if (text != null) {
             o.addProperty("text", text);
         }

@@ -15,11 +15,20 @@ import org.slf4j.Logger;
 import sk.adamko.velospawn.Messages;
 import sk.adamko.velospawn.config.PluginConfig;
 
+import com.velocitypowered.api.event.player.ServerPostConnectEvent;
+import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
+import com.velocitypowered.api.scheduler.ScheduledTask;
+import sk.adamko.velospawn.chat.DiscordRelay.Place;
+
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -46,6 +55,22 @@ public final class ChatService {
     private final Map<UUID, String> announced = new ConcurrentHashMap<>();
     private CommandMeta msgMeta;
     private CommandMeta replyMeta;
+
+    /** How long a join/switch post waits for the companion to report the player's world. */
+    static final int WORLD_WAIT_SECONDS = 3;
+    private static final MinecraftChannelIdentifier REGISTER = MinecraftChannelIdentifier.from("minecraft:register");
+
+    private record WorldInfo(String server, String name, String environment) {
+    }
+
+    private record Pending(String server, Consumer<Place> post, ScheduledTask fallback) {
+    }
+
+    /** Each player's current world, as reported by the companion on their current server. */
+    private final Map<UUID, WorldInfo> worlds = new ConcurrentHashMap<>();
+    /** Servers the companion has been heard from; only there is a join post worth holding for the world. */
+    private final Set<String> companionServers = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Pending> pending = new ConcurrentHashMap<>();
 
     public ChatService(Object plugin, ProxyServer proxy, Logger logger, Supplier<PluginConfig> config,
                        Messages messages, HttpClient http) {
@@ -104,7 +129,7 @@ public final class ChatService {
                 "message", event.getMessage());
         broadcastToOthers(line, server.get());
         logger.info("[chat] [{}] {}: {}", server.get(), player.getUsername(), event.getMessage());
-        discord.chat(player.getUsername(), server.get(), display(server.get()), event.getMessage());
+        discord.chat(player.getUsername(), place(player.getUniqueId(), server.get()), event.getMessage());
     }
 
     @Subscribe
@@ -113,14 +138,18 @@ public final class ChatService {
             return;
         }
         Player player = event.getPlayer();
+        UUID id = player.getUniqueId();
         String server = event.getServer().getServerInfo().getName();
+        flushPending(id);
+        worlds.remove(id); // a new server: the world is reported again by its companion
         if (excluded(server)) {
             return; // e.g. a trip through the waiting room: announced once they land on a season
         }
-        String previous = announced.put(player.getUniqueId(), server);
+        String previous = announced.put(id, server);
         if (previous != null) {
             if (!previous.equals(server)) {
-                discord.switchServer(player.getUsername(), previous, display(previous), server, display(server));
+                Place from = Place.of(previous, display(previous));
+                announceOnDiscord(id, server, at -> discord.switchServer(player.getUsername(), from, at));
             }
             return;
         }
@@ -128,7 +157,59 @@ public final class ChatService {
                 "player", player.getUsername(), "prefix", prefix(player),
                 "server", server, "display", display(server));
         broadcastToOthers(line, server);
-        discord.join(player.getUsername(), server, display(server));
+        announceOnDiscord(id, server, at -> discord.join(player.getUsername(), at));
+    }
+
+    /**
+     * Lets the companion on the new server talk to us: Paper only sends plugin messages on channels the
+     * player's connection registered, and a vanilla client never registers ours, so the proxy does it.
+     */
+    @Subscribe
+    public void onPostConnect(ServerPostConnectEvent event) {
+        if (!enabled()) {
+            return;
+        }
+        event.getPlayer().getCurrentServer().ifPresent(conn -> {
+            if (!excluded(conn.getServerInfo().getName())) {
+                conn.sendPluginMessage(REGISTER, BACKEND_EVENTS.getId().getBytes(StandardCharsets.UTF_8));
+            }
+        });
+    }
+
+    /** Posts now, or (where the companion runs) once it has said which world the player is in. */
+    private void announceOnDiscord(UUID id, String server, Consumer<Place> post) {
+        if (!companionServers.contains(server)) {
+            post.accept(place(id, server));
+            return;
+        }
+        ScheduledTask fallback = proxy.getScheduler().buildTask(plugin, () -> firePending(id, server))
+                .delay(WORLD_WAIT_SECONDS, TimeUnit.SECONDS)
+                .schedule();
+        pending.put(id, new Pending(server, post, fallback));
+    }
+
+    private void firePending(UUID id, String server) {
+        Pending p = pending.get(id);
+        if (p != null && p.server().equals(server) && pending.remove(id, p)) {
+            p.fallback().cancel();
+            p.post().accept(place(id, server));
+        }
+    }
+
+    private void flushPending(UUID id) {
+        Pending p = pending.remove(id);
+        if (p != null) {
+            p.fallback().cancel();
+            p.post().accept(place(id, p.server()));
+        }
+    }
+
+    private Place place(UUID id, String server) {
+        WorldInfo w = worlds.get(id);
+        String label = w != null && w.server().equals(server)
+                ? config.get().chat().discord().worldLabel(w.name(), w.environment())
+                : "";
+        return new Place(server, display(server), label);
     }
 
     @Subscribe
@@ -137,7 +218,10 @@ public final class ChatService {
         UUID id = player.getUniqueId();
         replyTo.remove(id);
         replyTo.values().removeIf(id::equals);
+        flushPending(id); // a join that is still waiting for its world goes out before the leave
         String server = announced.remove(id);
+        Place at = server == null ? null : place(id, server);
+        worlds.remove(id);
         if (server == null || !enabled()) {
             return;
         }
@@ -145,14 +229,14 @@ public final class ChatService {
                 "player", player.getUsername(), "prefix", prefix(player),
                 "server", server, "display", display(server));
         broadcastToOthers(line, server);
-        discord.leave(player.getUsername(), server, display(server));
+        discord.leave(player.getUsername(), at);
     }
 
     // ------------------------------------------------------------------ season-server events
 
     /** Channel the AdamkoVeloSpawn-Companion plugin on the season servers sends events on. */
-    public static final com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier BACKEND_EVENTS =
-            com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier.from("adamkovelospawn:events");
+    public static final MinecraftChannelIdentifier BACKEND_EVENTS =
+            MinecraftChannelIdentifier.from("adamkovelospawn:events");
 
     public void registerChannel() {
         proxy.getChannelRegistrar().register(BACKEND_EVENTS);
@@ -183,19 +267,30 @@ public final class ChatService {
             logger.debug("Ignoring malformed companion message from {}: {}", server, e.toString());
             return;
         }
+        companionServers.add(server);
+        UUID id = conn.getPlayer().getUniqueId();
         String player = conn.getPlayer().getUsername(); // trust the connection, not the payload
+        if (o.has("world") && o.get("world").isJsonPrimitive()) {
+            String env = o.has("env") && o.get("env").isJsonPrimitive() ? o.get("env").getAsString() : null;
+            worlds.put(id, new WorldInfo(server, o.get("world").getAsString(), env));
+        }
+        firePending(id, server); // a join/switch waiting for the world can go out now
         String type = o.has("type") ? o.get("type").getAsString() : "";
         String text = o.has("text") ? o.get("text").getAsString() : "";
+        Place at = place(id, server);
         switch (type) {
-            case "afk" -> discord.afk(player, server, display(server), o.has("afk") && o.get("afk").getAsBoolean());
+            case "world" -> {
+                // only updates the world shown in later posts
+            }
+            case "afk" -> discord.afk(player, at, o.has("afk") && o.get("afk").getAsBoolean());
             case "death" -> {
                 if (!text.isBlank()) {
-                    discord.death(player, server, display(server), text);
+                    discord.death(player, at, text);
                 }
             }
             case "advancement" -> {
                 if (!text.isBlank()) {
-                    discord.advancement(player, server, display(server), text);
+                    discord.advancement(player, at, text);
                 }
             }
             default -> logger.debug("Unknown companion event '{}' from {}", type, server);

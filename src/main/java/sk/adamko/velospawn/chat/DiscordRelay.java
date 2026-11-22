@@ -35,6 +35,13 @@ public final class DiscordRelay {
     public record Response(int status, double retryAfterSeconds) {
     }
 
+    /** Where something happened: the server, its display name and the world label ("" if unknown). */
+    public record Place(String server, String display, String world) {
+        public static Place of(String server, String display) {
+            return new Place(server, display, "");
+        }
+    }
+
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([a-z_]+)}");
     /** Inline markdown, plus [ ] so chat can't post masked links. */
     private static final Pattern MARKDOWN = Pattern.compile("([\\\\*_~`|\\[\\]])");
@@ -57,54 +64,61 @@ public final class DiscordRelay {
         this(config, logger, httpSender(http));
     }
 
-    public void chat(String player, String server, String display, String message) {
-        Map<String, String> vars = vars(player, server, display, "", "");
+    public void chat(String player, Place at, String message) {
+        Map<String, String> vars = vars(player, at, null);
         vars.put("message", message);
-        post(config.get().chat(), vars, player, server);
+        post(config.get().chat(), vars);
     }
 
-    public void join(String player, String server, String display) {
-        post(config.get().join(), vars(player, server, display, "", ""), player, server);
+    public void join(String player, Place at) {
+        post(config.get().join(), vars(player, at, null));
     }
 
-    public void switchServer(String player, String from, String fromDisplay, String server, String display) {
-        post(config.get().switchServer(), vars(player, server, display, from, fromDisplay), player, server);
+    public void switchServer(String player, Place from, Place to) {
+        post(config.get().switchServer(), vars(player, to, from));
     }
 
-    public void leave(String player, String server, String display) {
-        post(config.get().leave(), vars(player, server, display, "", ""), player, server);
+    public void leave(String player, Place at) {
+        post(config.get().leave(), vars(player, at, null));
     }
 
-    public void afk(String player, String server, String display, boolean afk) {
+    public void afk(String player, Place at, boolean afk) {
         DiscordConfig cfg = config.get();
-        post(afk ? cfg.afk() : cfg.afkReturn(), vars(player, server, display, "", ""), player, server);
+        post(afk ? cfg.afk() : cfg.afkReturn(), vars(player, at, null));
     }
 
-    public void death(String player, String server, String display, String message) {
-        Map<String, String> vars = vars(player, server, display, "", "");
+    public void death(String player, Place at, String message) {
+        Map<String, String> vars = vars(player, at, null);
         vars.put("message", message);
-        post(config.get().death(), vars, player, server);
+        post(config.get().death(), vars);
     }
 
-    public void advancement(String player, String server, String display, String advancement) {
-        Map<String, String> vars = vars(player, server, display, "", "");
+    public void advancement(String player, Place at, String advancement) {
+        Map<String, String> vars = vars(player, at, null);
         vars.put("advancement", advancement);
-        post(config.get().advancement(), vars, player, server);
+        post(config.get().advancement(), vars);
     }
 
-    private static Map<String, String> vars(String player, String server, String display,
-                                            String from, String fromDisplay) {
+    private static Map<String, String> vars(String player, Place at, Place from) {
         Map<String, String> m = new java.util.HashMap<>();
         m.put("player", player);
-        m.put("server", server);
-        m.put("display", display);
-        m.put("short", shortName(display));
-        m.put("from", from);
-        m.put("from_display", fromDisplay);
-        m.put("from_short", shortName(fromDisplay));
+        m.put("server", at.server());
+        m.put("display", at.display());
+        m.put("short", shortName(at.display()));
+        m.put("world", at.world());
+        m.put("location", location(at));
+        m.put("from", from == null ? "" : from.server());
+        m.put("from_display", from == null ? "" : from.display());
+        m.put("from_short", from == null ? "" : shortName(from.display()));
         m.put("message", "");
         m.put("advancement", "");
         return m;
+    }
+
+    /** "Season 2 - Nether", or just "Season 2" while the world isn't known. */
+    static String location(Place at) {
+        String s = shortName(at.display());
+        return at.world().isBlank() ? s : s + " - " + at.world();
     }
 
     /** "Season 1 · 2023" → "Season 1": the display name up to the first "·". */
@@ -113,7 +127,7 @@ public final class DiscordRelay {
         return dot < 0 ? display.trim() : display.substring(0, dot).trim();
     }
 
-    private void post(String template, Map<String, String> vars, String player, String server) {
+    private void post(String template, Map<String, String> vars) {
         DiscordConfig cfg = config.get();
         if (!cfg.enabled() || template == null || template.isBlank()) {
             return;

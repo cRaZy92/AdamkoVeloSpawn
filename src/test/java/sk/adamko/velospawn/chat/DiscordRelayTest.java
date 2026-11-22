@@ -21,7 +21,8 @@ class DiscordRelayTest {
             "[{server}] - {player}", "https://mc-heads.net/avatar/{player}/128",
             "{message}", "➡️ {player} has joined!", "🔀 {player} moved to {display}", "⬅️ {player} has left!",
             "", "", "", "🚶 {player} is now AFK!", "⌨️ {player} is no longer AFK!", "💀 {message}",
-            "🥇 {player} has completed the advancement **{advancement}**!");
+            "🥇 {player} has completed the advancement **{advancement}**!", java.util.Map.of());
+    private static final DiscordRelay.Place S1 = DiscordRelay.Place.of("s1", "Season 1");
 
     @Test
     void escapesMarkdownButKeepsLinks() {
@@ -34,6 +35,24 @@ class DiscordRelayTest {
                 "heading escaped; > mid-line is harmless");
         assertEquals("see https://example.com/a-b?x=1", DiscordRelay.escapeMarkdown("see https://example.com/a-b?x=1"));
         assertEquals("1 - 2", DiscordRelay.escapeMarkdown("1 - 2"));
+    }
+
+    @Test
+    void locationAddsTheWorldWhenKnown() {
+        assertEquals("Season 2 - Nether", DiscordRelay.location(new DiscordRelay.Place("s2", "Season 2 · 2024–2026", "Nether")));
+        assertEquals("Season 2", DiscordRelay.location(new DiscordRelay.Place("s2", "Season 2 · 2024–2026", "")));
+    }
+
+    @Test
+    void worldLabelsByFolderNameThenKind() {
+        var d = new DiscordConfig("", "", "", "", "", "", "", "", "", "", "", "", "", "",
+                java.util.Map.of("normal", "World", "nether", "Nether", "the_end", "End", "resource", "Mining world"));
+        assertEquals("World", d.worldLabel("world", "NORMAL"));
+        assertEquals("Nether", d.worldLabel("world_nether", "NETHER"));
+        assertEquals("End", d.worldLabel("world_the_end", "THE_END"));
+        assertEquals("Mining world", d.worldLabel("resource", "NORMAL"), "a folder name wins over the kind");
+        assertEquals("creative_plots", d.worldLabel("creative_plots", "CUSTOM"), "unknown: folder name");
+        assertEquals("", d.worldLabel("", "NORMAL"));
     }
 
     @Test
@@ -68,8 +87,8 @@ class DiscordRelayTest {
             sent.add(JsonParser.parseString(json).getAsJsonObject().get("content").getAsString());
             return sent.size() == 1 ? slow : CompletableFuture.completedFuture(new DiscordRelay.Response(204, 0));
         });
-        relay.join("Ann", "s1", "Season 1");
-        relay.chat("Ann", "s1", "Season 1", "first!");
+        relay.join("Ann", S1);
+        relay.chat("Ann", S1, "first!");
         assertEquals(List.of("➡️ Ann has joined!"), sent, "second waits for the first");
         slow.complete(new DiscordRelay.Response(204, 0));
         assertEquals(List.of("➡️ Ann has joined!", "first!"), sent);
@@ -82,7 +101,7 @@ class DiscordRelayTest {
             sent.add(json);
             return CompletableFuture.completedFuture(new DiscordRelay.Response(429, 0.05));
         });
-        relay.join("Ann", "s1", "Season 1");
+        relay.join("Ann", S1);
         long deadline = System.currentTimeMillis() + 3000;
         while (sent.size() < 2 && System.currentTimeMillis() < deadline) {
             Thread.onSpinWait();
@@ -100,8 +119,8 @@ class DiscordRelayTest {
                     ? CompletableFuture.failedFuture(new java.io.IOException("down"))
                     : CompletableFuture.completedFuture(new DiscordRelay.Response(204, 0));
         });
-        relay.join("Ann", "s1", "Season 1");
-        relay.leave("Ann", "s1", "Season 1");
+        relay.join("Ann", S1);
+        relay.leave("Ann", S1);
         assertEquals(2, sent.size());
         assertTrue(sent.get(1).contains("has left"));
     }

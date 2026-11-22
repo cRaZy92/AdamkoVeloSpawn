@@ -51,6 +51,17 @@ public final class ConfigLoader {
         return parse(root);
     }
 
+    private static Map<String, String> worlds(ConfigurationNode node) {
+        Map<String, String> out = new java.util.HashMap<>();
+        node.childrenMap().forEach((k, v) -> {
+            String label = v.getString();
+            if (label != null) {
+                out.put(String.valueOf(k), label);
+            }
+        });
+        return Map.copyOf(out);
+    }
+
     private static PluginConfig.DiscordConfig parseDiscord(ConfigurationNode chat) {
         ConfigurationNode d = chat.node("discord");
         String webhook = d.node("webhook").getString("");
@@ -71,7 +82,8 @@ public final class ConfigLoader {
                 d.node("afk").getString(""),
                 d.node("afk-return").getString(""),
                 d.node("death").getString(""),
-                d.node("advancement").getString(""));
+                d.node("advancement").getString(""),
+                worlds(d.node("worlds")));
     }
 
     static ConfigurationNode loadDefaults() throws ConfigurateException {

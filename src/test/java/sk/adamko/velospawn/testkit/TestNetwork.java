@@ -162,7 +162,7 @@ public final class TestNetwork {
     private static PluginConfig.DiscordConfig withWebhook(PluginConfig.DiscordConfig d) {
         return new PluginConfig.DiscordConfig("https://discord.test/api/webhooks/1/x", d.username(), d.avatar(),
                 d.chat(), d.join(), d.switchServer(), d.leave(), d.botToken(), d.channelId(), d.toMinecraft(),
-                d.afk(), d.afkReturn(), d.death(), d.advancement());
+                d.afk(), d.afkReturn(), d.death(), d.advancement(), d.worlds());
     }
 
     /** Discord posts as "username | content". */
@@ -291,6 +291,7 @@ public final class TestNetwork {
         router.onServerConnected(connected);
         chat.onServerConnected(connected);
         mapIds.onPostConnect(new com.velocitypowered.api.event.player.ServerPostConnectEvent(p.mock, previous));
+        chat.onPostConnect(new com.velocitypowered.api.event.player.ServerPostConnectEvent(p.mock, previous));
     }
 
     /** Backend kicks the player (crash, stop, ban): Velocity's fallback sends them to the try server. */
@@ -341,6 +342,8 @@ public final class TestNetwork {
         public int connectRequests;
         /** Plugin messages sent to this client: channel id + payload. */
         public final List<Map.Entry<String, byte[]>> pluginMessages = Collections.synchronizedList(new ArrayList<>());
+        /** Plugin messages the proxy sent to this player's backend server, as "server|channel|payload". */
+        public final List<String> toBackend = Collections.synchronizedList(new ArrayList<>());
         public com.velocitypowered.api.network.ProtocolVersion protocol =
                 com.velocitypowered.api.network.ProtocolVersion.MAXIMUM_VERSION;
 
@@ -367,6 +370,10 @@ public final class TestNetwork {
             when(c.getServerInfo()).thenReturn(info);
             when(c.getServer()).thenReturn(rs);
             when(c.getPlayer()).thenReturn(mock);
+            when(c.sendPluginMessage(any(com.velocitypowered.api.proxy.messages.ChannelIdentifier.class), any(byte[].class)))
+                    .thenAnswer(i -> toBackend.add(serverName + "|"
+                            + i.<com.velocitypowered.api.proxy.messages.ChannelIdentifier>getArgument(0).getId() + "|"
+                            + new String(i.<byte[]>getArgument(1), java.nio.charset.StandardCharsets.UTF_8)));
             return c;
         }
 

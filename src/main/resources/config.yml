@@ -53,12 +53,14 @@ chat:
   exclude-servers: [limbo, waiting]
   # Optional Discord mirror via a webhook (Channel settings → Integrations → Webhooks).
   # Each message is posted as the player: the name and avatar below, then the text.
-  # Placeholders: {player} {server} {display} {short} {from} {from_display} {from_short} {message}.
+  # Placeholders: {player} {server} {display} {short} {world} {location} {from} {from_display} {from_short} {message}.
   # {short} is the display name up to the first "·" ("Season 1 · 2023" → "Season 1").
+  # {world} is the player's world (needs the companion jar on the seasons, see `worlds` below) and
+  # {location} is "{short} - {world}", or just "{short}" while the world isn't known.
   # Set any of chat/join/switch/leave to "" to leave that event out.
   discord:
     webhook: ""
-    username: "[{short}] - {player}"
+    username: "[{location}] - {player}"
     avatar: "https://mc-heads.net/avatar/{player}/128"
     chat: "{message}"
     join: "➡️ {player} has joined {display}!"
@@ -70,6 +72,12 @@ chat:
     afk-return: "⌨️ {player} is no longer AFK!"
     death: "💀 {message}"
     advancement: "🥇 {player} has completed the advancement **{advancement}**!"
+    # How worlds are named in {world}/{location}: by world folder name first (e.g. "world_nether"),
+    # then by kind (normal, nether, the_end). Anything not listed shows its folder name.
+    worlds:
+      normal: "World"
+      nether: "Nether"
+      the_end: "End"
     # Discord → Minecraft (optional): a bot reads one channel and shows its messages on the seasons.
     # Any bot works, e.g. the one EssentialsX Discord used. In the Developer Portal turn on
     # "Message Content Intent" (Bot → Privileged Gateway Intents); the bot needs "View Channel" and

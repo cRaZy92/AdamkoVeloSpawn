@@ -70,10 +70,24 @@ public record PluginConfig(
             String afk,
             String afkReturn,
             String death,
-            String advancement) {
+            String advancement,
+            Map<String, String> worlds) {
 
         public static final DiscordConfig NONE =
-                new DiscordConfig("", "", "", "", "", "", "", "", "", "", "", "", "", "");
+                new DiscordConfig("", "", "", "", "", "", "", "", "", "", "", "", "", "", Map.of());
+
+        /** Label for a world: by its exact name first, then by its kind (normal, nether, the_end). */
+        public String worldLabel(String worldName, String environment) {
+            if (worldName == null || worldName.isBlank()) {
+                return "";
+            }
+            String byName = worlds.get(worldName);
+            if (byName != null) {
+                return byName;
+            }
+            String byEnv = environment == null ? null : worlds.get(environment.toLowerCase(java.util.Locale.ROOT));
+            return byEnv != null ? byEnv : worldName;
+        }
 
         public boolean enabled() {
             return webhook != null && !webhook.isBlank();

@@ -116,7 +116,7 @@ checks off), never by IP — behind a tunnel such as Pangolin every player arriv
 - Servers in `exclude-servers` (limbo, waiting) neither send nor receive network chat.
 - Network join line when a player first reaches a season; leave line on disconnect (sent to other servers).
 - `chat.discord`: optional webhook mirror in the EssentialsX Discord style. Each post appears as the
-  player (`[Season 1] - Steve`, with their head from mc-heads.net as the avatar): `➡️ Steve has joined Season 1 · 2023!`,
+  player (`[Season 1 - Nether] - Steve`, with their head from mc-heads.net as the avatar): `➡️ Steve has joined Season 1 · 2023!`,
   `🔀 Steve moved to Season 2`, `⬅️ Steve has left!` and their chat messages. Trips through the waiting
   room don't count as moves. Every text is configurable, and `""` turns that event off. Markdown and masked links
   in chat are escaped, `@` mentions are disabled, and posts go out in order (a rate limit is retried once).
@@ -129,6 +129,13 @@ checks off), never by IP — behind a tunnel such as Pangolin every player arriv
   `advancement`). The companion has no config and changes nothing in game. It only forwards what the
   game itself announces (respecting the death/advancement message game rules, skipping recipes and
   vanished players). The proxy only accepts these from a server connection, so a player can't fake one.
+- The companion also reports each player's world, so Discord names read `[Season 2 - Nether] - Steve`
+  (`{location}`; `{world}` alone is the world). Names come from `chat.discord.worlds`: by folder name
+  first, then by kind (`normal`/`nether`/`the_end`). Join and switch posts wait up to 3 s for the world on
+  servers where the companion runs; without it they go out at once as `[Season 2] - Steve`.
+- Paper only sends plugin messages on channels the player's connection registered, and a vanilla client
+  never registers the companion's channel, so after every switch to a season the proxy registers
+  `adamkovelospawn:events` on the player's behalf; the companion starts talking once that arrives.
 - Discord → Minecraft: set `chat.discord.bot-token` and `channel-id` and a bot (e.g. the one EssentialsX
   Discord used) reads that channel. Messages show on every season (not limbo/waiting) as `to-minecraft`,
   `[Discord] Name: text` by default, with the name in the member's role colour. Bots and webhooks are

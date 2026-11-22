@@ -67,7 +67,8 @@ class ConfigLoaderTest {
                 """);
         PluginConfig.DiscordConfig d = ConfigLoader.load(dir).chat().discord();
         assertEquals("https://discord.test/api/webhooks/1/old", d.webhook());
-        assertEquals("[{short}] - {player}", d.username());
+        assertEquals("[{location}] - {player}", d.username());
+        assertEquals("Nether", d.worldLabel("world_nether", "NETHER"), "default world names are filled in");
         assertEquals("🔀 {player} moved to {display}", d.switchServer());
         assertTrue(d.enabled());
     }

@@ -127,7 +127,7 @@ class ChatServiceTest {
                     c.chat().joinFormat(), c.chat().leaveFormat(), c.chat().excludeServers(),
                     new sk.adamko.velospawn.config.PluginConfig.DiscordConfig(d.webhook(), d.username(), d.avatar(),
                             d.chat(), d.join(), "", d.leave(), d.botToken(), d.channelId(), d.toMinecraft(),
-                            d.afk(), d.afkReturn(), d.death(), d.advancement()));
+                            d.afk(), d.afkReturn(), d.death(), d.advancement(), d.worlds()));
             return new sk.adamko.velospawn.config.PluginConfig(c.panelUrl(), c.apiKey(), c.authServer(),
                     c.waitingServer(), c.newest(), c.seasons(), c.rememberLastServer(), c.prestartOnConnect(),
                     c.startupTimeoutSeconds(), c.pollIntervalSeconds(), c.pingTimeoutMs(), chat, c.messages(),
@@ -224,6 +224,85 @@ class ChatServiceTest {
         fromSeason(bob, "{\"type\":\"death\",\"text\":\"\"}");
         fromSeason(bob, "{\"type\":\"afk\",\"player\":\"Notch\",\"afk\":true}");
         assertEquals(List.of("[Season 2] - Bob | 🚶 Bob is now AFK!"), net.discord());
+    }
+
+    private void world(FakePlayer p, String world, String env) {
+        fromSeason(p, "{\"v\":1,\"type\":\"world\",\"world\":\"" + world + "\",\"env\":\"" + env + "\"}");
+    }
+
+    @Test
+    void proxyRegistersTheCompanionChannelOnEverySeasonButNotTheWaitingRoom() {
+        net.enableChat();
+        net.running("s3");
+        net.offline("s1");
+        FakePlayer ann = net.login("Ann");
+        assertTrue(ann.toBackend.contains("s3|minecraft:register|adamkovelospawn:events"));
+        net.connect(ann, "waiting");
+        assertTrue(ann.toBackend.stream().noneMatch(m -> m.startsWith("waiting|")));
+    }
+
+    @Test
+    void discordNameShowsTheSeasonAndWorld() {
+        net.enableChat();
+        net.running("s2");
+        FakePlayer ann = on("Ann", "s2");
+        world(ann, "world_nether", "NETHER");
+        net.chat(ann, "hot here");
+        world(ann, "world", "NORMAL");
+        fromSeason(ann, "{\"type\":\"death\",\"world\":\"world_the_end\",\"env\":\"THE_END\",\"text\":\"Ann fell out of the world\"}");
+        assertEquals(List.of(
+                "[Season 2 - Nether] - Ann | hot here",
+                "[Season 2 - End] - Ann | 💀 Ann fell out of the world"), net.discord());
+    }
+
+    @Test
+    void joinPostWaitsForTheWorldWhereTheCompanionRuns() {
+        net.enableChat();
+        net.running("s3");
+        FakePlayer bob = on("Bob", "s3");
+        world(bob, "world", "NORMAL"); // the proxy now knows s3 has the companion
+        net.discordPosts.clear();
+
+        FakePlayer ann = net.login("Ann");
+        assertTrue(net.discord().isEmpty(), "held until the companion says where she is");
+        world(ann, "world", "NORMAL");
+        assertEquals(List.of("[Season 3 - World] - Ann | ➡️ Ann has joined Season 3 · 2026!"), net.discord());
+        net.scheduler.advanceSeconds(10);
+        assertEquals(1, net.discord().size(), "posted once, the fallback was cancelled");
+    }
+
+    @Test
+    void joinPostGoesOutWithoutTheWorldIfTheCompanionStaysQuiet() {
+        net.enableChat();
+        net.running("s3");
+        FakePlayer bob = on("Bob", "s3");
+        world(bob, "world", "NORMAL");
+        net.discordPosts.clear();
+        net.login("Ann");
+        net.scheduler.advanceSeconds(ChatService.WORLD_WAIT_SECONDS);
+        assertEquals(List.of("[Season 3] - Ann | ➡️ Ann has joined Season 3 · 2026!"), net.discord());
+    }
+
+    @Test
+    void quickLeaveStillPostsTheJoinFirst() {
+        net.enableChat();
+        net.running("s3");
+        FakePlayer bob = on("Bob", "s3");
+        world(bob, "world", "NORMAL");
+        net.discordPosts.clear();
+        FakePlayer ann = net.login("Ann");
+        net.disconnect(ann);
+        assertEquals(List.of(
+                "[Season 3] - Ann | ➡️ Ann has joined Season 3 · 2026!",
+                "[Season 3] - Ann | ⬅️ Ann has left!"), net.discord());
+    }
+
+    @Test
+    void serversWithoutTheCompanionPostJoinsImmediately() {
+        net.enableChat();
+        net.running("s3");
+        net.login("Ann");
+        assertEquals(List.of("[Season 3] - Ann | ➡️ Ann has joined Season 3 · 2026!"), net.discord());
     }
 
     @Test
