@@ -11,11 +11,11 @@ Java 21 (`--release 21`).
 
 ```
 ./gradlew build
-# -> build/libs/AdamkoVeloSpawn-1.0.0.jar
+# -> build/libs/AdamkoVeloSpawn-1.0.0-SNAPSHOT.jar (CI builds are 1.0.<build number>)
 ```
 
 Or download it: every push to `main` is built and tested by GitHub Actions and published as a
-release (`v1.0.0-build.<n>`) with both jars attached (the proxy plugin and the season-server companion);
+release (`v1.0.<build number>`, e.g. `v1.0.14`) with both jars attached (the proxy plugin and the season-server companion);
 the newest is marked "Latest".
 
 Copy the jar to Velocity's `plugins/`. First start writes `plugins/adamkovelospawn/config.yml`
@@ -214,6 +214,6 @@ Use `/avs status` before each test to confirm the starting state; `/avs stop s3`
 
 1. Stop Velocity, move `velocitypteropower-*.jar` out of `plugins/`.
 2. Add the `waiting` PicoLimbo, register it, `try = ["waiting"]`.
-3. Drop in `AdamkoVeloSpawn-1.0.0.jar`, start Velocity once to generate the config, fill in the panel
+3. Drop in `AdamkoVeloSpawn-<version>.jar` from the latest release, start Velocity once to generate the config, fill in the panel
    URL/key, `/avs reload`, run the checklist.
 4. Rollback: swap the old jar back and set `try = ["s3"]`.

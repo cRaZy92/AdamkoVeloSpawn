@@ -25,6 +25,8 @@ jobs:
 
       - name: Build and test
         run: ./gradlew build --no-daemon
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -47,11 +49,11 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         id: rel
         run: |
-          version=$(sed -n 's/^version = "\(.*\)"/\1/p' build.gradle.kts)
-          tag="v${version}-build.${{ github.run_number }}"
-          cp build/libs/AdamkoVeloSpawn-${version}.jar "AdamkoVeloSpawn-${version}-build.${{ github.run_number }}.jar"
-          cp companion/build/libs/AdamkoVeloSpawn-Companion-${version}.jar "AdamkoVeloSpawn-Companion-${version}-build.${{ github.run_number }}.jar"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          base=$(sed -n 's/^val baseVersion = "\(.*\)"/\1/p' build.gradle.kts)
+          version="${base}.${{ github.run_number }}"
+          mkdir -p release
+          cp build/libs/AdamkoVeloSpawn-${version}.jar companion/build/libs/AdamkoVeloSpawn-Companion-${version}.jar release/
+          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
 
       - uses: softprops/action-gh-release@v2
         if: steps.rel.outcome == 'success'
@@ -61,4 +63,4 @@ jobs:
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
           make_latest: true
-          files: AdamkoVeloSpawn-*-build.*.jar
+          files: release/*.jar

@@ -4,7 +4,11 @@ plugins {
 }
 
 group = "sk.adamko"
-version = "1.0.0"
+// Major.minor here; the patch number is the CI build number (BUILD_NUMBER), so every release on GitHub
+// gets a version that sorts correctly (1.0.9 < 1.0.10). Local builds are 1.0.0-SNAPSHOT.
+val baseVersion = "1.0"
+version = providers.environmentVariable("BUILD_NUMBER").map { "$baseVersion.$it" }
+    .getOrElse("$baseVersion.0-SNAPSHOT")
 
 java {
     // Velocity 4.x API jars are compiled for Java 25, so compile with a JDK 25 toolchain,
