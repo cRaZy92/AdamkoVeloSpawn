@@ -81,7 +81,7 @@ Then `/vauth reload` (or restart).
 | Login (VeloAuth → `waiting`) | Destination = last season (if still configured) else `newest`. Running → redirected straight there. Off → stays in `waiting`, action-bar countdown, moved when ready. |
 | `PostLoginEvent` | Destination is pre-started while the player types `/login` (`routing.prestart-on-connect`). |
 | Connect to a season (`/server`, `/play`) | Live check (ping ≤ `ping-timeout-ms`, then panel state). Off + player already on a season → **stays there** (connect denied quietly) with countdown; otherwise redirected to `waiting`. |
-| Readiness | Ping answers **and** panel says `running` (if the panel is unreachable but the ping works, the ping wins), then `join-delay-seconds`, then queued players move (3 tries, 2 s apart). |
+| Readiness | The ping decides: once the season answers, it is up (then `join-delay-seconds`, then queued players move, 3 tries 2 s apart). The panel's state is only believed when it says `stopping`, because Pelican caches `/resources` for up to 20 s and can still say "starting" after the server is up. |
 | Several players, one season | One start attempt, one start call; all queued players move when ready. |
 | Season `stopping` | Waits for `offline`, then sends one start. A stop we just sent is never treated as "ready" even if the panel still says running. |
 | Crash during startup (`starting` → `offline`) | Reported as failed; no retry loop. |

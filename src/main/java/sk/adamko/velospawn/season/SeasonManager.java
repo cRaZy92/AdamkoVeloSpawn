@@ -30,8 +30,10 @@ public final class SeasonManager {
     /** Result of a live check. {@code panelError} is non-null when the panel couldn't be asked. */
     public record LiveStatus(boolean pingOk, State panelState, String panelError) {
         public boolean ready() {
-            // A server that answers pings is joinable; if the panel is down we trust the ping.
-            return pingOk && (panelState == State.RUNNING || panelError != null);
+            // The ping decides: a server that answers it has finished starting. Pelican caches its state
+            // for up to 20 s, so the panel can still say "starting" (or even "offline") for a while after
+            // the server is up; only "stopping" is believed, so nobody is sent to a server going down.
+            return pingOk && panelState != State.STOPPING;
         }
     }
 

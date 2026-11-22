@@ -147,17 +147,35 @@ class SeasonManagerTest {
     // ------------------------------------------------------------------ live readiness
 
     @Test
-    void readinessNeedsPingAndRunningState() {
+    void readinessFollowsThePingBecausePelicanCachesItsState() {
         net.panelState("s3", State.RUNNING);
         net.ping("s3", false);
         assertFalse(readyNow("s3"), "panel says running but server doesn't answer");
 
         net.panelState("s3", State.STARTING);
         net.ping("s3", true);
-        assertFalse(readyNow("s3"));
+        assertTrue(readyNow("s3"), "answers pings: up, even if the panel's cached state says starting");
 
-        net.running("s3");
-        assertTrue(readyNow("s3"));
+        net.panelState("s3", State.OFFLINE);
+        assertTrue(readyNow("s3"), "cached 'offline' from before the start");
+
+        net.panelState("s3", State.STOPPING);
+        assertFalse(readyNow("s3"), "stopping is always believed");
+    }
+
+    @Test
+    void playersMoveAsSoonAsTheServerAnswersEvenIfThePanelStillSaysStarting() {
+        net.offline("s2");
+        CompletableFuture<Outcome> f = seasons.ensureReady("s2");
+        assertEquals(1, net.startCalls("s2"));
+        net.panelState("s2", State.STARTING);
+        net.scheduler.advanceSeconds(10);
+        assertFalse(f.isDone(), "still booting: no ping answer yet");
+
+        net.ping("s2", true); // "Done!" — but Pelican's cached state lags up to 20 s
+        net.scheduler.advanceSeconds(2 + 15);
+        assertEquals(Outcome.READY, f.getNow(null), "join delay after the first ping answer, no panel wait");
+        assertTrue(readyNow("s2"), "and the move itself isn't refused either");
     }
 
     @Test
