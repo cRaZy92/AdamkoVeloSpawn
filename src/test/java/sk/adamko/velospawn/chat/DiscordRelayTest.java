@@ -20,7 +20,8 @@ class DiscordRelayTest {
     private static final DiscordConfig CFG = new DiscordConfig("https://discord.test/hook",
             "[{server}] - {player}", "https://mc-heads.net/avatar/{player}/128",
             "{message}", "➡️ {player} has joined!", "🔀 {player} moved to {display}", "⬅️ {player} has left!",
-            "", "", "");
+            "", "", "", "🚶 {player} is now AFK!", "⌨️ {player} is no longer AFK!", "💀 {message}",
+            "🥇 {player} has completed the advancement **{advancement}**!");
 
     @Test
     void escapesMarkdownButKeepsLinks() {

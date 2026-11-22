@@ -75,6 +75,23 @@ public final class DiscordRelay {
         post(config.get().leave(), vars(player, server, display, "", ""), player, server);
     }
 
+    public void afk(String player, String server, String display, boolean afk) {
+        DiscordConfig cfg = config.get();
+        post(afk ? cfg.afk() : cfg.afkReturn(), vars(player, server, display, "", ""), player, server);
+    }
+
+    public void death(String player, String server, String display, String message) {
+        Map<String, String> vars = vars(player, server, display, "", "");
+        vars.put("message", message);
+        post(config.get().death(), vars, player, server);
+    }
+
+    public void advancement(String player, String server, String display, String advancement) {
+        Map<String, String> vars = vars(player, server, display, "", "");
+        vars.put("advancement", advancement);
+        post(config.get().advancement(), vars, player, server);
+    }
+
     private static Map<String, String> vars(String player, String server, String display,
                                             String from, String fromDisplay) {
         Map<String, String> m = new java.util.HashMap<>();
@@ -86,6 +103,7 @@ public final class DiscordRelay {
         m.put("from_display", fromDisplay);
         m.put("from_short", shortName(fromDisplay));
         m.put("message", "");
+        m.put("advancement", "");
         return m;
     }
 

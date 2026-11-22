@@ -126,7 +126,8 @@ class ChatServiceTest {
             var chat = new sk.adamko.velospawn.config.PluginConfig.ChatConfig(true, c.chat().format(),
                     c.chat().joinFormat(), c.chat().leaveFormat(), c.chat().excludeServers(),
                     new sk.adamko.velospawn.config.PluginConfig.DiscordConfig(d.webhook(), d.username(), d.avatar(),
-                            d.chat(), d.join(), "", d.leave(), d.botToken(), d.channelId(), d.toMinecraft()));
+                            d.chat(), d.join(), "", d.leave(), d.botToken(), d.channelId(), d.toMinecraft(),
+                            d.afk(), d.afkReturn(), d.death(), d.advancement()));
             return new sk.adamko.velospawn.config.PluginConfig(c.panelUrl(), c.apiKey(), c.authServer(),
                     c.waitingServer(), c.newest(), c.seasons(), c.rememberLastServer(), c.prestartOnConnect(),
                     c.startupTimeoutSeconds(), c.pollIntervalSeconds(), c.pingTimeoutMs(), chat, c.messages(),
@@ -175,6 +176,54 @@ class ChatServiceTest {
         FakePlayer ann = on("Ann", "s3");
         net.chat.fromDiscord(new DiscordBot.Chat("Brodykus", null, "hi"));
         assertTrue(ann.chat().isEmpty());
+    }
+
+    private com.velocitypowered.api.event.connection.PluginMessageEvent fromSeason(FakePlayer p, String json) {
+        var e = new com.velocitypowered.api.event.connection.PluginMessageEvent(p.connectionNow(), p.mock,
+                ChatService.BACKEND_EVENTS, json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        net.chat.onPluginMessage(e);
+        return e;
+    }
+
+    @Test
+    void afkDeathsAndAdvancementsFromTheCompanionGoToDiscord() {
+        net.enableChat();
+        net.running("s1");
+        FakePlayer bob = net.player("Bob");
+        bob.server = "s1";
+        var e = fromSeason(bob, "{\"v\":1,\"type\":\"afk\",\"player\":\"Bob\",\"afk\":true}");
+        fromSeason(bob, "{\"v\":1,\"type\":\"afk\",\"player\":\"Bob\",\"afk\":false}");
+        fromSeason(bob, "{\"v\":1,\"type\":\"death\",\"player\":\"Bob\",\"text\":\"Bob was blown up by Creeper\"}");
+        fromSeason(bob, "{\"v\":1,\"type\":\"advancement\",\"player\":\"Bob\",\"text\":\"Diamonds!\"}");
+        assertEquals(List.of(
+                "[Season 1] - Bob | 🚶 Bob is now AFK!",
+                "[Season 1] - Bob | ⌨️ Bob is no longer AFK!",
+                "[Season 1] - Bob | 💀 Bob was blown up by Creeper",
+                "[Season 1] - Bob | 🥇 Bob has completed the advancement **Diamonds!**!"), net.discord());
+        assertTrue(!e.getResult().isAllowed(), "consumed by the proxy, never forwarded to the client");
+    }
+
+    @Test
+    void companionEventsCanOnlyComeFromTheServerNotAPlayer() {
+        net.enableChat();
+        FakePlayer bob = on("Bob", "s1");
+        var e = new com.velocitypowered.api.event.connection.PluginMessageEvent(bob.mock, bob.connectionNow(),
+                ChatService.BACKEND_EVENTS,
+                "{\"type\":\"death\",\"text\":\"Admin was banned\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        net.chat.onPluginMessage(e);
+        assertTrue(net.discordPosts.isEmpty(), "a modded client can't post to Discord");
+        assertTrue(!e.getResult().isAllowed(), "and it doesn't reach the season server either");
+    }
+
+    @Test
+    void companionNameComesFromTheConnectionAndJunkIsIgnored() {
+        net.enableChat();
+        FakePlayer bob = on("Bob", "s2");
+        fromSeason(bob, "not json");
+        fromSeason(bob, "{\"type\":\"teleport\"}");
+        fromSeason(bob, "{\"type\":\"death\",\"text\":\"\"}");
+        fromSeason(bob, "{\"type\":\"afk\",\"player\":\"Notch\",\"afk\":true}");
+        assertEquals(List.of("[Season 2] - Bob | 🚶 Bob is now AFK!"), net.discord());
     }
 
     @Test

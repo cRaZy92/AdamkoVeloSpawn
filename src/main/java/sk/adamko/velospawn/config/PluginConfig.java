@@ -66,9 +66,14 @@ public record PluginConfig(
             String leave,
             String botToken,
             String channelId,
-            String toMinecraft) {
+            String toMinecraft,
+            String afk,
+            String afkReturn,
+            String death,
+            String advancement) {
 
-        public static final DiscordConfig NONE = new DiscordConfig("", "", "", "", "", "", "", "", "", "");
+        public static final DiscordConfig NONE =
+                new DiscordConfig("", "", "", "", "", "", "", "", "", "", "", "", "", "");
 
         public boolean enabled() {
             return webhook != null && !webhook.isBlank();

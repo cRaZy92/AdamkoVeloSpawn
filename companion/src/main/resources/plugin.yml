@@ -1,0 +1,7 @@
+name: AdamkoVeloSpawnCompanion
+version: "${version}"
+main: sk.adamko.velospawn.companion.Companion
+api-version: "1.21"
+description: Sends AFK, death and advancement events to AdamkoVeloSpawn on the Velocity proxy.
+authors: [Adam Šromovský]
+softdepend: [Essentials]

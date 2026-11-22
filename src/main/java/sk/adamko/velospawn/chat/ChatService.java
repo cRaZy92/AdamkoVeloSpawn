@@ -148,6 +148,60 @@ public final class ChatService {
         discord.leave(player.getUsername(), server, display(server));
     }
 
+    // ------------------------------------------------------------------ season-server events
+
+    /** Channel the AdamkoVeloSpawn-Companion plugin on the season servers sends events on. */
+    public static final com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier BACKEND_EVENTS =
+            com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier.from("adamkovelospawn:events");
+
+    public void registerChannel() {
+        proxy.getChannelRegistrar().register(BACKEND_EVENTS);
+    }
+
+    /**
+     * AFK, deaths and advancements from the companion plugin, mirrored to Discord. Only a season
+     * server can send these: the same channel from a client is dropped, and nothing on it is forwarded.
+     */
+    @Subscribe
+    public void onPluginMessage(com.velocitypowered.api.event.connection.PluginMessageEvent event) {
+        if (!event.getIdentifier().equals(BACKEND_EVENTS)) {
+            return;
+        }
+        event.setResult(com.velocitypowered.api.event.connection.PluginMessageEvent.ForwardResult.handled());
+        if (!(event.getSource() instanceof com.velocitypowered.api.proxy.ServerConnection conn) || !enabled()) {
+            return;
+        }
+        String server = conn.getServerInfo().getName();
+        if (excluded(server)) {
+            return;
+        }
+        com.google.gson.JsonObject o;
+        try {
+            o = com.google.gson.JsonParser.parseString(
+                    new String(event.getData(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+        } catch (RuntimeException e) {
+            logger.debug("Ignoring malformed companion message from {}: {}", server, e.toString());
+            return;
+        }
+        String player = conn.getPlayer().getUsername(); // trust the connection, not the payload
+        String type = o.has("type") ? o.get("type").getAsString() : "";
+        String text = o.has("text") ? o.get("text").getAsString() : "";
+        switch (type) {
+            case "afk" -> discord.afk(player, server, display(server), o.has("afk") && o.get("afk").getAsBoolean());
+            case "death" -> {
+                if (!text.isBlank()) {
+                    discord.death(player, server, display(server), text);
+                }
+            }
+            case "advancement" -> {
+                if (!text.isBlank()) {
+                    discord.advancement(player, server, display(server), text);
+                }
+            }
+            default -> logger.debug("Unknown companion event '{}' from {}", type, server);
+        }
+    }
+
     // ------------------------------------------------------------------ Discord -> Minecraft
 
     /** A message from the Discord channel: shown to everyone on a non-excluded server. */

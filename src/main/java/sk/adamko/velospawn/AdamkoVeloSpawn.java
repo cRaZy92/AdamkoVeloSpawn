@@ -89,6 +89,7 @@ public final class AdamkoVeloSpawn {
 
         proxy.getEventManager().register(this, router);
         proxy.getEventManager().register(this, chat);
+        chat.registerChannel();
         mapIds = new MapIdService(this, proxy, logger, this::config);
         proxy.getEventManager().register(this, mapIds);
         mapIds.start();

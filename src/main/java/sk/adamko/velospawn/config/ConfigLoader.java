@@ -67,7 +67,11 @@ public final class ConfigLoader {
                 d.node("leave").getString(""),
                 d.node("bot-token").getString("").trim(),
                 d.node("channel-id").getString("").trim(),
-                d.node("to-minecraft").getString(""));
+                d.node("to-minecraft").getString(""),
+                d.node("afk").getString(""),
+                d.node("afk-return").getString(""),
+                d.node("death").getString(""),
+                d.node("advancement").getString(""));
     }
 
     static ConfigurationNode loadDefaults() throws ConfigurateException {

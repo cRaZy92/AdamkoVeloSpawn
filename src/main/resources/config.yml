@@ -64,6 +64,12 @@ chat:
     join: "➡️ {player} has joined {display}!"
     switch: "🔀 {player} moved to {display}"
     leave: "⬅️ {player} has left!"
+    # These four need the AdamkoVeloSpawn-Companion jar on the season servers (the proxy can't see them).
+    # {message}: the death message as players saw it; {advancement}: the advancement title.
+    afk: "🚶 {player} is now AFK!"
+    afk-return: "⌨️ {player} is no longer AFK!"
+    death: "💀 {message}"
+    advancement: "🥇 {player} has completed the advancement **{advancement}**!"
     # Discord → Minecraft (optional): a bot reads one channel and shows its messages on the seasons.
     # Any bot works, e.g. the one EssentialsX Discord used. In the Developer Portal turn on
     # "Message Content Intent" (Bot → Privileged Gateway Intents); the bot needs "View Channel" and

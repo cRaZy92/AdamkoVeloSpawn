@@ -148,7 +148,7 @@ public final class DiscordBot {
         if (member == null) {
             return null;
         }
-        int raw = member.getColorRaw();
+        int raw = member.getColors().getPrimaryRaw();
         return raw == net.dv8tion.jda.api.entities.Role.DEFAULT_COLOR_RAW ? null : raw;
     }
 

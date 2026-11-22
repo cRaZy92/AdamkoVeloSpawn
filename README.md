@@ -15,7 +15,8 @@ Java 21 (`--release 21`).
 ```
 
 Or download it: every push to `main` is built and tested by GitHub Actions and published as a
-release (`v1.0.0-build.<n>`) with the jar attached; the newest is marked "Latest".
+release (`v1.0.0-build.<n>`) with both jars attached (the proxy plugin and the season-server companion);
+the newest is marked "Latest".
 
 Copy the jar to Velocity's `plugins/`. First start writes `plugins/adamkovelospawn/config.yml`
 (the bundled default is `src/main/resources/config.yml`). Set `panel.url`, `panel.api-key` and each season's `panel-id`.
@@ -119,8 +120,15 @@ checks off), never by IP — behind a tunnel such as Pangolin every player arriv
   `🔀 Steve moved to Season 2`, `⬅️ Steve has left!` and their chat messages. Trips through the waiting
   room don't count as moves. Every text is configurable, and `""` turns that event off. Markdown and masked links
   in chat are escaped, `@` mentions are disabled, and posts go out in order (a rate limit is retried once).
-  The older `discord-webhook` key still works. Deaths, advancements and AFK happen on the backends, so the proxy
-  can't see them.
+  The older `discord-webhook` key still works.
+- AFK, deaths and advancements happen on the season servers, which the proxy can't see. Put
+  `AdamkoVeloSpawn-Companion-<version>.jar` (from the same release) into `plugins/` on each season server
+  (Paper 26.x; EssentialsX for AFK) and they are posted too: `🚶 Steve is now AFK!`,
+  `⌨️ Steve is no longer AFK!`, `💀 Steve was blown up by Creeper`,
+  `🥇 Steve has completed the advancement **Diamonds!**!` (templates `afk`, `afk-return`, `death`,
+  `advancement`). The companion has no config and changes nothing in game. It only forwards what the
+  game itself announces (respecting the death/advancement message game rules, skipping recipes and
+  vanished players). The proxy only accepts these from a server connection, so a player can't fake one.
 - Discord → Minecraft: set `chat.discord.bot-token` and `channel-id` and a bot (e.g. the one EssentialsX
   Discord used) reads that channel. Messages show on every season (not limbo/waiting) as `to-minecraft`,
   `[Discord] Name: text` by default, with the name in the member's role colour. Bots and webhooks are

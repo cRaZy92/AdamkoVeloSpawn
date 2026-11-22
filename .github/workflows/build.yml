@@ -29,14 +29,18 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: AdamkoVeloSpawn-${{ github.sha }}
-          path: build/libs/AdamkoVeloSpawn-*.jar
+          path: |
+            build/libs/AdamkoVeloSpawn-*.jar
+            companion/build/libs/AdamkoVeloSpawn-Companion-*.jar
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: test-reports
-          path: build/reports/tests/
+          path: |
+            build/reports/tests/
+            companion/build/reports/
 
       # Every push to main becomes a GitHub release with the jar attached, e.g. v1.0.0-build.12.
       - name: Prepare release
@@ -46,6 +50,7 @@ jobs:
           version=$(sed -n 's/^version = "\(.*\)"/\1/p' build.gradle.kts)
           tag="v${version}-build.${{ github.run_number }}"
           cp build/libs/AdamkoVeloSpawn-${version}.jar "AdamkoVeloSpawn-${version}-build.${{ github.run_number }}.jar"
+          cp companion/build/libs/AdamkoVeloSpawn-Companion-${version}.jar "AdamkoVeloSpawn-Companion-${version}-build.${{ github.run_number }}.jar"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - uses: softprops/action-gh-release@v2
