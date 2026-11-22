@@ -91,6 +91,15 @@ public final class TestNetwork {
     public TestNetwork() {
         try {
             dataDir = Files.createTempDirectory("avs-test");
+            // The bundled default leaves panel-id empty; fill in fake ids for s3, s2, s1 (in file order).
+            String yml;
+            try (var in = ConfigLoader.class.getResourceAsStream("/config.yml")) {
+                yml = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            }
+            for (String id : List.of(S3_PANEL, S2_PANEL, S1_PANEL)) {
+                yml = yml.replaceFirst("panel-id: \"\"", "panel-id: \"" + id + "\"");
+            }
+            Files.writeString(dataDir.resolve("config.yml"), yml);
             config = ConfigLoader.load(dataDir);
         } catch (IOException e) {
             throw new UncheckedIOException(e);

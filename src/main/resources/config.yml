@@ -9,20 +9,21 @@
 #   try = ["waiting"]
 
 panel:
-  url: "http://<host>"        # Pelican, internal address (no trailing slash needed)
+  url: "http://panel.example"       # Pelican, internal address (no trailing slash needed)
   api-key: "plcn_..."                 # client key of velocity-bot (subuser: Start/Stop/Restart; /resources readable)
 
 servers:
-  auth: limbo                         # VeloAuth's login limbo (PicoLimbo, <port>)
-  waiting: waiting                    # always-on waiting room (PicoLimbo, <port>)
+  auth: limbo                         # VeloAuth's login limbo (PicoLimbo)
+  waiting: waiting                    # always-on waiting room (PicoLimbo)
   newest: s3                          # only a pointer: the only line to change when s4 arrives
   # Velocity server names never change (s1, s2, s3…); years live only in display-name.
   # idle-shutdown-minutes: 0 disables idle shutdown for that season.
   # join-delay-seconds: settle time after the server answers pings.
+  # panel-id: the short server ID from the Pelican panel URL (must be filled in).
   seasons:
-    s3: { panel-id: "test0003", display-name: "Season 3 · 2026",      idle-shutdown-minutes: 15, join-delay-seconds: 5 }
-    s2: { panel-id: "test0002", display-name: "Season 2 · 2024–2026", idle-shutdown-minutes: 15, join-delay-seconds: 15 }
-    s1: { panel-id: "test0001", display-name: "Season 1 · 2023",      idle-shutdown-minutes: 10, join-delay-seconds: 5 }
+    s3: { panel-id: "", display-name: "Season 3 · 2026",      idle-shutdown-minutes: 15, join-delay-seconds: 5 }
+    s2: { panel-id: "", display-name: "Season 2 · 2024–2026", idle-shutdown-minutes: 15, join-delay-seconds: 15 }
+    s1: { panel-id: "", display-name: "Season 1 · 2023",      idle-shutdown-minutes: 10, join-delay-seconds: 5 }
 
 routing:
   remember-last-server: true

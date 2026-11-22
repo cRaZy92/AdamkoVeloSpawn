@@ -22,9 +22,8 @@ class ConfigLoaderTest {
         assertEquals("limbo", cfg.authServer());
         assertEquals("s3", cfg.newest());
         assertEquals(List.of("s3", "s2", "s1"), cfg.seasonNames());
-        assertEquals("test0003", cfg.season("s3").panelId());
+        assertEquals("", cfg.season("s3").panelId(), "real panel ids are not shipped");
         assertEquals(15, cfg.season("s2").joinDelaySeconds());
-        assertEquals("test0001", cfg.season("s1").panelId());
         assertEquals(10, cfg.season("s1").idleShutdownMinutes());
         assertEquals("Season 1 · 2023", cfg.season("s1").displayName());
         assertEquals("Season 2 · 2024–2026", cfg.season("s2").displayName());

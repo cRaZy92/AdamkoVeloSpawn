@@ -2,7 +2,7 @@
 
 Velocity plugin (`adamkovelospawn`) that owns where every player goes: routing, on-demand
 season starts via Pelican, the waiting room, idle shutdown and network chat.
-Spec: [`AdamkoVeloSpawn plugin plan.md`](AdamkoVeloSpawn%20plugin%20plan.md). Milestones 1–4 are implemented.
+Milestones 1–4 of the original plan are implemented.
 
 ## Build
 
@@ -15,11 +15,11 @@ Java 21 (`--release 21`).
 ```
 
 Copy the jar to Velocity's `plugins/`. First start writes `plugins/adamkovelospawn/config.yml`
-(the bundled default is `src/main/resources/config.yml`). Set `panel.url` and `panel.api-key`.
+(the bundled default is `src/main/resources/config.yml`). Set `panel.url`, `panel.api-key` and each season's `panel-id`.
 
 ## Setup on the proxy
 
-- `velocity.toml` (all backends on <host>; proxy on <port>):
+- `velocity.toml` (hosts and ports are yours):
 
   ```toml
   [servers]
@@ -91,7 +91,7 @@ Then `/vauth reload` (or restart).
 ## Identity: UUIDs only
 
 Last-server data and queues are keyed by player UUID (offline UUIDs, since VeloAuth runs with premium
-checks off), never by IP — every player currently arrives as <host> through Pangolin.
+checks off), never by IP — behind a tunnel such as Pangolin every player arrives from the same address.
 
 ## Commands
 
@@ -190,7 +190,7 @@ Use `/avs status` before each test to confirm the starting state; `/avs stop s3`
 ## Cut-over from VelocityPteroPower
 
 1. Stop Velocity, move `velocitypteropower-*.jar` out of `plugins/`.
-2. Add the `waiting` PicoLimbo (port <port>), register it, `try = ["waiting"]`.
+2. Add the `waiting` PicoLimbo, register it, `try = ["waiting"]`.
 3. Drop in `AdamkoVeloSpawn-1.0.0.jar`, start Velocity once to generate the config, fill in the panel
    URL/key, `/avs reload`, run the checklist.
 4. Rollback: swap the old jar back and set `try = ["s3"]`.

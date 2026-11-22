@@ -3,3 +3,7 @@ build/
 .idea/
 *.iml
 run/
+
+# Private: the original plan and the real network values (hosts, ports, Pelican ids)
+AdamkoVeloSpawn plugin plan.md
+local/
