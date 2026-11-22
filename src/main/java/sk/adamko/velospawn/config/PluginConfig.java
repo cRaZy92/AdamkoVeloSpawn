@@ -54,7 +54,7 @@ public record PluginConfig(
 
     /**
      * Discord webhook mirror. Text values use {@code {player}}, {@code {server}}, {@code {display}},
-     * {@code {from}}, {@code {from_display}} and {@code {message}}; an empty value turns that event off.
+     * {@code {short}}, {@code {from}}, {@code {from_display}}, {@code {from_short}} and {@code {message}}; an empty value turns that event off.
      */
     public record DiscordConfig(
             String webhook,

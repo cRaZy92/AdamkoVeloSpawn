@@ -53,14 +53,15 @@ chat:
   exclude-servers: [limbo, waiting]
   # Optional Discord mirror via a webhook (Channel settings → Integrations → Webhooks).
   # Each message is posted as the player: the name and avatar below, then the text.
-  # Placeholders: {player} {server} {display} {from} {from_display} {message}.
+  # Placeholders: {player} {server} {display} {short} {from} {from_display} {from_short} {message}.
+  # {short} is the display name up to the first "·" ("Season 1 · 2023" → "Season 1").
   # Set any of chat/join/switch/leave to "" to leave that event out.
   discord:
     webhook: ""
-    username: "[{server}] - {player}"
+    username: "[{short}] - {player}"
     avatar: "https://mc-heads.net/avatar/{player}/128"
     chat: "{message}"
-    join: "➡️ {player} has joined!"
+    join: "➡️ {player} has joined {display}!"
     switch: "🔀 {player} moved to {display}"
     leave: "⬅️ {player} has left!"
 

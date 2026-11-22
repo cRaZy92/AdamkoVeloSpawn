@@ -35,6 +35,13 @@ class DiscordRelayTest {
     }
 
     @Test
+    void shortNameIsTheDisplayNameBeforeTheDot() {
+        assertEquals("Season 1", DiscordRelay.shortName("Season 1 · 2019–2023"));
+        assertEquals("Season 2", DiscordRelay.shortName("Season 2 · 2024–2026"));
+        assertEquals("waiting", DiscordRelay.shortName("waiting"));
+    }
+
+    @Test
     void fillsPlaceholdersAndLeavesUnknownOnes() {
         assertEquals("[s1] - Ann {nope}", DiscordRelay.fill("[{server}] - {player} {nope}",
                 Map.of("server", "s1", "player", "Ann")));

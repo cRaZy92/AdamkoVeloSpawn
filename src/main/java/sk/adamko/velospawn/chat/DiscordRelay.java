@@ -58,8 +58,9 @@ public final class DiscordRelay {
     }
 
     public void chat(String player, String server, String display, String message) {
-        post(config.get().chat(), Map.of("player", player, "server", server, "display", display,
-                "message", message, "from", "", "from_display", ""), player, server);
+        Map<String, String> vars = vars(player, server, display, "", "");
+        vars.put("message", message);
+        post(config.get().chat(), vars, player, server);
     }
 
     public void join(String player, String server, String display) {
@@ -76,8 +77,22 @@ public final class DiscordRelay {
 
     private static Map<String, String> vars(String player, String server, String display,
                                             String from, String fromDisplay) {
-        return Map.of("player", player, "server", server, "display", display,
-                "from", from, "from_display", fromDisplay, "message", "");
+        Map<String, String> m = new java.util.HashMap<>();
+        m.put("player", player);
+        m.put("server", server);
+        m.put("display", display);
+        m.put("short", shortName(display));
+        m.put("from", from);
+        m.put("from_display", fromDisplay);
+        m.put("from_short", shortName(fromDisplay));
+        m.put("message", "");
+        return m;
+    }
+
+    /** "Season 1 · 2023" → "Season 1": the display name up to the first "·". */
+    static String shortName(String display) {
+        int dot = display.indexOf('·');
+        return dot < 0 ? display.trim() : display.substring(0, dot).trim();
     }
 
     private void post(String template, Map<String, String> vars, String player, String server) {

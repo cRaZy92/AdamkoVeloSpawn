@@ -67,7 +67,7 @@ class ConfigLoaderTest {
                 """);
         PluginConfig.DiscordConfig d = ConfigLoader.load(dir).chat().discord();
         assertEquals("https://discord.test/api/webhooks/1/old", d.webhook());
-        assertEquals("[{server}] - {player}", d.username());
+        assertEquals("[{short}] - {player}", d.username());
         assertEquals("🔀 {player} moved to {display}", d.switchServer());
         assertTrue(d.enabled());
     }

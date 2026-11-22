@@ -93,10 +93,10 @@ class ChatServiceTest {
         net.connect(ann, "s2");                      // back where she was: no duplicate switch
         net.disconnect(ann);
         assertEquals(List.of(
-                "[s3] - Ann | ➡️ Ann has joined!",
-                "[s3] - Ann | hi \\*all\\*",
-                "[s2] - Ann | 🔀 Ann moved to Season 2 · 2024–2026",
-                "[s2] - Ann | ⬅️ Ann has left!"), net.discord());
+                "[Season 3] - Ann | ➡️ Ann has joined Season 3 · 2026!",
+                "[Season 3] - Ann | hi \\*all\\*",
+                "[Season 2] - Ann | 🔀 Ann moved to Season 2 · 2024–2026",
+                "[Season 2] - Ann | ⬅️ Ann has left!"), net.discord());
         assertEquals("https://mc-heads.net/avatar/Ann/128",
                 net.discordPosts.get(0).get("avatar_url").getAsString());
         assertEquals(0, net.discordPosts.get(0).getAsJsonObject("allowed_mentions")
@@ -114,8 +114,8 @@ class ChatServiceTest {
         net.scheduler.advanceSeconds(2 + 5);
         assertEquals("s1", ann.server);
         assertEquals(List.of(
-                "[s3] - Ann | ➡️ Ann has joined!",
-                "[s1] - Ann | 🔀 Ann moved to Season 1 · 2023"), net.discord());
+                "[Season 3] - Ann | ➡️ Ann has joined Season 3 · 2026!",
+                "[Season 1] - Ann | 🔀 Ann moved to Season 1 · 2023"), net.discord());
     }
 
     @Test
@@ -136,7 +136,7 @@ class ChatServiceTest {
         net.running("s2");
         FakePlayer ann = net.login("Ann");
         net.connect(ann, "s2");
-        assertEquals(List.of("[s3] - Ann | ➡️ Ann has joined!"), net.discord());
+        assertEquals(List.of("[Season 3] - Ann | ➡️ Ann has joined Season 3 · 2026!"), net.discord());
     }
 
     @Test

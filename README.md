@@ -115,7 +115,7 @@ checks off), never by IP — behind a tunnel such as Pangolin every player arriv
 - Servers in `exclude-servers` (limbo, waiting) neither send nor receive network chat.
 - Network join line when a player first reaches a season; leave line on disconnect (sent to other servers).
 - `chat.discord`: optional webhook mirror in the EssentialsX Discord style. Each post appears as the
-  player (`[s1] - Steve`, with their head from mc-heads.net as the avatar): `➡️ Steve has joined!`,
+  player (`[Season 1] - Steve`, with their head from mc-heads.net as the avatar): `➡️ Steve has joined Season 1 · 2023!`,
   `🔀 Steve moved to Season 2`, `⬅️ Steve has left!` and their chat messages. Trips through the waiting
   room don't count as moves. Every text is configurable, and `""` turns that event off. Markdown and masked links
   in chat are escaped, `@` mentions are disabled, and posts go out in order (a rate limit is retried once).
