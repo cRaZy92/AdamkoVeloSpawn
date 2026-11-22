@@ -99,6 +99,15 @@ All player-facing text is MiniMessage in `config.yml` → `messages`. Placeholde
 text is inserted literally (no tag injection). An empty message means "say nothing".
 New keys added in later versions are filled in automatically on load.
 
+## Automated tests
+
+`./gradlew test` — 74 tests. The core ones run the real `Router`, `WaitQueue`, `SeasonManager` and
+`ChatService` inside a simulated network (`src/test/java/.../testkit`): a fake Pelican panel, a virtual-clock
+scheduler, and mocked Velocity players/servers whose connects fire the same events Velocity does. That
+covers the checklist's logic (prefixed `checklist_` in `RouterTest`) plus timeouts, crashes during startup,
+retries, idle timers and chat. Not covered: the real Velocity event bus, VeloAuth itself, real Pelican HTTP,
+and Minecraft clients — that's what the live checklist below is for.
+
 ## Test procedure (maps to the plan's checklist)
 
 Two accounts (A = OP with `adamkovelospawn.admin`, B = normal), Velocity console open.

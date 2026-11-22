@@ -20,12 +20,16 @@ repositories {
 // Matches the proxy build.
 val velocityVersion = "4.3.2-SNAPSHOT"
 
+val mockitoAgent = configurations.create("mockitoAgent")
+
 dependencies {
     compileOnly("com.velocitypowered:velocity-api:$velocityVersion")
     annotationProcessor("com.velocitypowered:velocity-api:$velocityVersion")
     compileOnly("net.luckperms:api:5.4")
 
     testImplementation("com.velocitypowered:velocity-api:$velocityVersion")
+    testImplementation("org.mockito:mockito-core:5.24.0")
+    mockitoAgent("org.mockito:mockito-core:5.24.0") { isTransitive = false }
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -38,6 +42,8 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    // Mockito's inline mock maker needs its agent attached explicitly on JDK 21+.
+    jvmArgs("-javaagent:${mockitoAgent.asPath}", "-Xshare:off")
 }
 
 // Bake the project version into the @Plugin annotation.
