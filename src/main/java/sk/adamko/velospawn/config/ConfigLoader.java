@@ -51,6 +51,22 @@ public final class ConfigLoader {
         return parse(root);
     }
 
+    private static PluginConfig.DiscordConfig parseDiscord(ConfigurationNode chat) {
+        ConfigurationNode d = chat.node("discord");
+        String webhook = d.node("webhook").getString("");
+        if (webhook.isBlank()) {
+            webhook = chat.node("discord-webhook").getString(""); // older configs had chat.discord-webhook
+        }
+        return new PluginConfig.DiscordConfig(
+                webhook.trim(),
+                d.node("username").getString(""),
+                d.node("avatar").getString(""),
+                d.node("chat").getString(""),
+                d.node("join").getString(""),
+                d.node("switch").getString(""),
+                d.node("leave").getString(""));
+    }
+
     static ConfigurationNode loadDefaults() throws ConfigurateException {
         return YamlConfigurationLoader.builder()
                 .source(() -> new BufferedReader(new InputStreamReader(
@@ -82,7 +98,7 @@ public final class ConfigLoader {
                 chat.node("join-format").getString(""),
                 chat.node("leave-format").getString(""),
                 new LinkedHashSet<>(chat.node("exclude-servers").getList(String.class, List.of())),
-                chat.node("discord-webhook").getString(""));
+                parseDiscord(chat));
 
         ConfigurationNode maps = root.node("map-mods");
         PluginConfig.MapModsConfig mapMods = new PluginConfig.MapModsConfig(

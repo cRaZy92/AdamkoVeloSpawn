@@ -1,7 +1,5 @@
 package sk.adamko.velospawn.chat;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import com.velocitypowered.api.command.CommandManager;
 import com.velocitypowered.api.command.CommandMeta;
 import com.velocitypowered.api.event.Subscribe;
@@ -17,14 +15,9 @@ import org.slf4j.Logger;
 import sk.adamko.velospawn.Messages;
 import sk.adamko.velospawn.config.PluginConfig;
 
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -46,21 +39,28 @@ public final class ChatService {
     private final Logger logger;
     private final Supplier<PluginConfig> config;
     private final Messages messages;
-    private final HttpClient http;
+    private final DiscordRelay discord;
 
     private final Map<UUID, UUID> replyTo = new ConcurrentHashMap<>();
-    private final Set<UUID> announced = ConcurrentHashMap.newKeySet();
+    /** Last non-excluded server each player was announced on; absent until their network join. */
+    private final Map<UUID, String> announced = new ConcurrentHashMap<>();
     private CommandMeta msgMeta;
     private CommandMeta replyMeta;
 
     public ChatService(Object plugin, ProxyServer proxy, Logger logger, Supplier<PluginConfig> config,
                        Messages messages, HttpClient http) {
+        this(plugin, proxy, logger, config, messages,
+                new DiscordRelay(() -> config.get().chat().discord(), logger, http));
+    }
+
+    public ChatService(Object plugin, ProxyServer proxy, Logger logger, Supplier<PluginConfig> config,
+                       Messages messages, DiscordRelay discord) {
         this.plugin = plugin;
         this.proxy = proxy;
         this.logger = logger;
         this.config = config;
         this.messages = messages;
-        this.http = http;
+        this.discord = discord;
     }
 
     private boolean enabled() {
@@ -104,7 +104,7 @@ public final class ChatService {
                 "message", event.getMessage());
         broadcastToOthers(line, server.get());
         logger.info("[chat] [{}] {}: {}", server.get(), player.getUsername(), event.getMessage());
-        webhook(player.getUsername(), "**[" + server.get() + "]** " + event.getMessage());
+        discord.chat(player.getUsername(), server.get(), display(server.get()), event.getMessage());
     }
 
     @Subscribe
@@ -114,14 +114,21 @@ public final class ChatService {
         }
         Player player = event.getPlayer();
         String server = event.getServer().getServerInfo().getName();
-        if (excluded(server) || !announced.add(player.getUniqueId())) {
+        if (excluded(server)) {
+            return; // e.g. a trip through the waiting room: announced once they land on a season
+        }
+        String previous = announced.put(player.getUniqueId(), server);
+        if (previous != null) {
+            if (!previous.equals(server)) {
+                discord.switchServer(player.getUsername(), previous, display(previous), server, display(server));
+            }
             return;
         }
         Component line = Messages.render(config.get().chat().joinFormat(),
                 "player", player.getUsername(), "prefix", prefix(player),
                 "server", server, "display", display(server));
         broadcastToOthers(line, server);
-        webhook(null, "➕ **" + player.getUsername() + "** joined " + display(server));
+        discord.join(player.getUsername(), server, display(server));
     }
 
     @Subscribe
@@ -130,15 +137,15 @@ public final class ChatService {
         UUID id = player.getUniqueId();
         replyTo.remove(id);
         replyTo.values().removeIf(id::equals);
-        if (!announced.remove(id) || !enabled()) {
+        String server = announced.remove(id);
+        if (server == null || !enabled()) {
             return;
         }
-        String server = serverOf(player).orElse("");
         Component line = Messages.render(config.get().chat().leaveFormat(),
                 "player", player.getUsername(), "prefix", prefix(player),
                 "server", server, "display", display(server));
         broadcastToOthers(line, server);
-        webhook(null, "➖ **" + player.getUsername() + "** left the network");
+        discord.leave(player.getUsername(), server, display(server));
     }
 
     /** Everyone on a non-excluded server other than {@code sourceServer} (they already saw it locally). */
@@ -203,37 +210,6 @@ public final class ChatService {
         } catch (LinkageError | RuntimeException e) {
             logger.debug("LuckPerms prefix lookup failed", e);
             return Component.empty();
-        }
-    }
-
-    private void webhook(String username, String content) {
-        String url = config.get().chat().discordWebhook();
-        if (url == null || url.isBlank()) {
-            return;
-        }
-        JsonObject body = new JsonObject();
-        body.addProperty("content", content);
-        if (username != null) {
-            body.addProperty("username", username);
-        }
-        JsonObject mentions = new JsonObject();
-        mentions.add("parse", new JsonArray());
-        body.add("allowed_mentions", mentions);
-        try {
-            HttpRequest req = HttpRequest.newBuilder(URI.create(url))
-                    .timeout(Duration.ofSeconds(5))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                    .build();
-            http.sendAsync(req, HttpResponse.BodyHandlers.discarding()).whenComplete((resp, t) -> {
-                if (t != null) {
-                    logger.warn("Discord webhook failed: {}", t.toString());
-                } else if (resp.statusCode() >= 300) {
-                    logger.warn("Discord webhook returned HTTP {}", resp.statusCode());
-                }
-            });
-        } catch (RuntimeException e) {
-            logger.warn("Discord webhook misconfigured: {}", e.toString());
         }
     }
 }

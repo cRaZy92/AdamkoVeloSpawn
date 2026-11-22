@@ -80,6 +80,8 @@ public final class TestNetwork {
     public final Router router;
     public final ChatService chat;
     public final MapIdService mapIds;
+    /** Every Discord webhook body posted, in order. */
+    public final List<com.google.gson.JsonObject> discordPosts = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     private final Map<String, RegisteredServer> servers = new LinkedHashMap<>();
     private final Map<String, Boolean> up = new HashMap<>();
@@ -128,7 +130,12 @@ public final class TestNetwork {
         seasons.setWaiterCheck(queue::hasWaiters);
         lastServers = new LastServerStore(dataDir.resolve("last-servers.json"), logger, Runnable::run);
         router = new Router(plugin, proxy, logger, this::config, seasons, queue, lastServers, messages);
-        chat = new ChatService(plugin, proxy, logger, this::config, messages, PelicanClient.newHttpClient());
+        chat = new ChatService(plugin, proxy, logger, this::config, messages,
+                new sk.adamko.velospawn.chat.DiscordRelay(() -> config.chat().discord(), logger, (url, json) -> {
+                    discordPosts.add(com.google.gson.JsonParser.parseString(json).getAsJsonObject());
+                    return java.util.concurrent.CompletableFuture.completedFuture(
+                            new sk.adamko.velospawn.chat.DiscordRelay.Response(204, 0));
+                }));
         when(proxy.getChannelRegistrar()).thenReturn(mock(com.velocitypowered.api.proxy.messages.ChannelRegistrar.class));
         mapIds = new MapIdService(plugin, proxy, logger, this::config);
     }
@@ -148,8 +155,20 @@ public final class TestNetwork {
                 c.seasons(), c.rememberLastServer(), c.prestartOnConnect(), c.startupTimeoutSeconds(),
                 c.pollIntervalSeconds(), c.pingTimeoutMs(),
                 new PluginConfig.ChatConfig(true, c.chat().format(), c.chat().joinFormat(), c.chat().leaveFormat(),
-                        c.chat().excludeServers(), ""),
+                        c.chat().excludeServers(), withWebhook(c.chat().discord())),
                 c.messages(), c.mapMods()));
+    }
+
+    private static PluginConfig.DiscordConfig withWebhook(PluginConfig.DiscordConfig d) {
+        return new PluginConfig.DiscordConfig("https://discord.test/api/webhooks/1/x", d.username(), d.avatar(),
+                d.chat(), d.join(), d.switchServer(), d.leave());
+    }
+
+    /** Discord posts as "username | content". */
+    public List<String> discord() {
+        return discordPosts.stream()
+                .map(o -> o.get("username").getAsString() + " | " + o.get("content").getAsString())
+                .toList();
     }
 
     public void prestart(boolean on) {

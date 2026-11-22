@@ -51,7 +51,18 @@ chat:
   join-format: "<gray>[<green>+</green>] {player} joined {server}"
   leave-format: "<gray>[<red>-</red>] {player} left the network"
   exclude-servers: [limbo, waiting]
-  discord-webhook: ""                 # optional; chat + join/leave mirrored there
+  # Optional Discord mirror via a webhook (Channel settings → Integrations → Webhooks).
+  # Each message is posted as the player: the name and avatar below, then the text.
+  # Placeholders: {player} {server} {display} {from} {from_display} {message}.
+  # Set any of chat/join/switch/leave to "" to leave that event out.
+  discord:
+    webhook: ""
+    username: "[{server}] - {player}"
+    avatar: "https://mc-heads.net/avatar/{player}/128"
+    chat: "{message}"
+    join: "➡️ {player} has joined!"
+    switch: "🔀 {player} moved to {display}"
+    leave: "⬅️ {player} has left!"
 
 messages:                             # MiniMessage, all player-facing text lives here
   starting-actionbar: "<yellow>Starting {display}… {elapsed}s"

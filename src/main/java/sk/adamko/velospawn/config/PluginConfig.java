@@ -49,7 +49,27 @@ public record PluginConfig(
             String joinFormat,
             String leaveFormat,
             Set<String> excludeServers,
-            String discordWebhook) {
+            DiscordConfig discord) {
+    }
+
+    /**
+     * Discord webhook mirror. Text values use {@code {player}}, {@code {server}}, {@code {display}},
+     * {@code {from}}, {@code {from_display}} and {@code {message}}; an empty value turns that event off.
+     */
+    public record DiscordConfig(
+            String webhook,
+            String username,
+            String avatar,
+            String chat,
+            String join,
+            String switchServer,
+            String leave) {
+
+        public static final DiscordConfig NONE = new DiscordConfig("", "", "", "", "", "", "");
+
+        public boolean enabled() {
+            return webhook != null && !webhook.isBlank();
+        }
     }
 
     public boolean isSeason(String serverName) {

@@ -57,4 +57,18 @@ class ConfigLoaderTest {
         assertTrue(cfg.message("start-failed").contains("{display}")); // missing key filled
         assertEquals(2, cfg.pollIntervalSeconds());
     }
+
+    @Test
+    void oldDiscordWebhookKeyStillWorksAndGetsTheNewLook(@TempDir Path dir) throws Exception {
+        Files.writeString(dir.resolve("config.yml"), """
+                chat:
+                  enabled: true
+                  discord-webhook: "https://discord.test/api/webhooks/1/old"
+                """);
+        PluginConfig.DiscordConfig d = ConfigLoader.load(dir).chat().discord();
+        assertEquals("https://discord.test/api/webhooks/1/old", d.webhook());
+        assertEquals("[{server}] - {player}", d.username());
+        assertEquals("🔀 {player} moved to {display}", d.switchServer());
+        assertTrue(d.enabled());
+    }
 }
