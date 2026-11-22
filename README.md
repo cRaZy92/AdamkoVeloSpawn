@@ -14,6 +14,9 @@ Java 21 (`--release 21`).
 # -> build/libs/AdamkoVeloSpawn-1.0.0.jar
 ```
 
+Or download it: every push to `main` is built and tested by GitHub Actions and published as a
+release (`v1.0.0-build.<n>`) with the jar attached; the newest is marked "Latest".
+
 Copy the jar to Velocity's `plugins/`. First start writes `plugins/adamkovelospawn/config.yml`
 (the bundled default is `src/main/resources/config.yml`). Set `panel.url`, `panel.api-key` and each season's `panel-id`.
 
