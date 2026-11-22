@@ -62,6 +62,7 @@ public final class TestNetwork {
 
     public static final String S3_PANEL = "test0003";
     public static final String S2_PANEL = "test0002";
+    public static final String S1_PANEL = "test0001";
 
     public final Object plugin = new Object();
     public final Logger logger = NOPLogger.NOP_LOGGER;
@@ -92,7 +93,7 @@ public final class TestNetwork {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        for (String name : List.of("limbo", "waiting", "s2", "s3")) {
+        for (String name : List.of("limbo", "waiting", "s1", "s2", "s3")) {
             addServer(name);
         }
         up.put("limbo", true);
@@ -165,6 +166,7 @@ public final class TestNetwork {
         return switch (season) {
             case "s3" -> S3_PANEL;
             case "s2" -> S2_PANEL;
+            case "s1" -> S1_PANEL;
             default -> throw new IllegalArgumentException(season);
         };
     }

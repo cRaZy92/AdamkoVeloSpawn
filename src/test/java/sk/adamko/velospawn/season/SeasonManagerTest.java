@@ -259,6 +259,29 @@ class SeasonManagerTest {
     }
 
     @Test
+    void s1UsesItsOwnTenMinuteIdleTimerAndPanelId() {
+        net.running("s1");
+        seasons.evaluateIdle("s1");
+        net.scheduler.advanceMinutes(9);
+        assertEquals(0, net.stopCalls("s1"));
+        net.scheduler.advanceMinutes(1);
+        assertEquals(1, net.stopCalls("s1"));
+        assertEquals(java.util.List.of("stop:test0001"), net.panel.calls);
+    }
+
+    @Test
+    void eachSeasonStartsIndependently() {
+        net.offline("s1");
+        net.offline("s2");
+        net.offline("s3");
+        seasons.ensureReady("s1");
+        seasons.ensureReady("s2");
+        assertEquals(1, net.startCalls("s1"));
+        assertEquals(1, net.startCalls("s2"));
+        assertEquals(0, net.startCalls("s3"));
+    }
+
+    @Test
     void queuedPlayersBlockIdleShutdown() {
         net.running("s3");
         seasons.setWaiterCheck(s -> true);

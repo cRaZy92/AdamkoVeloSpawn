@@ -30,7 +30,7 @@ class RouterTest {
         net.running("s3");
         net.scheduler.advanceSeconds(2 + 5);
         assertEquals(List.of("limbo", "waiting", "s3"), p.visits());
-        assertEquals(List.of("Season 3 is ready, moving you…"), p.chat());
+        assertEquals(List.of("Season 3 · 2026 is ready, moving you…"), p.chat());
         assertEquals(1, net.startCalls("s3"));
     }
 
@@ -103,7 +103,7 @@ class RouterTest {
 
     @Test
     void lastSeasonNoLongerConfiguredFallsBackToNewest() {
-        net.lastServers.put(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "s1");
+        net.lastServers.put(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), "old_world"); // removed from config
         assertEquals("s3", net.router.destinationFor(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001")));
     }
 
@@ -168,12 +168,51 @@ class RouterTest {
 
         assertEquals(Status.CONNECTION_CANCELLED, net.connect(p, "s2").getStatus());
         assertEquals("s3", p.server, "stays on s3 while s2 starts");
-        assertEquals("Starting Season 2… 0s", p.lastActionBar());
+        assertEquals("Starting Season 2 · 2024–2026… 0s", p.lastActionBar());
         assertEquals(1, net.startCalls("s2"));
 
         net.running("s2");
         net.scheduler.advanceSeconds(2 + 15);
         assertEquals(List.of("limbo", "s3", "s2"), p.visits(), "no trip through waiting");
+    }
+
+    @Test
+    void archiveS1FromS3WhileOff_staysOnS3ThenMoved() {
+        net.running("s3");
+        net.offline("s1");
+        FakePlayer p = net.login("Bob");
+        assertEquals(Status.CONNECTION_CANCELLED, net.connect(p, "s1").getStatus());
+        assertEquals("Starting Season 1 · 2023… 0s", p.lastActionBar());
+        assertEquals(1, net.startCalls("s1"));
+        net.running("s1");
+        net.scheduler.advanceSeconds(2 + 5);
+        assertEquals(List.of("limbo", "s3", "s1"), p.visits());
+        assertEquals(List.of("Season 1 · 2023 is ready, moving you…"), p.chat());
+    }
+
+    @Test
+    void lastSeasonS1IsRememberedAndRestartedOnLogin() {
+        net.running("s3");
+        net.running("s1");
+        FakePlayer p = net.login("Bob");
+        net.connect(p, "s1");
+        net.disconnect(p);
+        assertEquals("s1", net.router.destinationFor(p.id));
+    }
+
+    @Test
+    void vanillaVeloAuthMoveIsNeverDenied() {
+        // VelocityPteroPower denied VeloAuth's move ("Failed to connect: unknown"). Here every
+        // connect leaving the auth limbo is allowed: either to the season or to the waiting room.
+        for (String season : List.of("s1", "s2", "s3")) {
+            net.offline(season);
+            FakePlayer p = net.player("P" + season);
+            p.server = "limbo";
+            assertEquals(Status.SUCCESS, net.connect(p, "waiting").getStatus());
+            p.server = "limbo";
+            assertEquals(Status.SUCCESS, net.connect(p, season).getStatus(), "forced-host style move to " + season);
+            assertEquals("waiting", p.server);
+        }
     }
 
     @Test
@@ -216,7 +255,7 @@ class RouterTest {
         assertEquals("waiting", p.server, "not bounced back");
         assertEquals(0, net.startCalls("s3"), "nothing restarted automatically");
         assertFalse(net.queue.isQueued(p.id));
-        assertTrue(p.chat().get(p.chat().size() - 1).startsWith("Season 3 went down."));
+        assertTrue(p.chat().get(p.chat().size() - 1).startsWith("Season 3 · 2026 went down."));
     }
 
     @Test
@@ -225,7 +264,7 @@ class RouterTest {
         FakePlayer p = net.login("Bob");
         net.kick(p); // e.g. AFK kick or ban; s3 still up
         assertEquals("waiting", p.server);
-        assertTrue(p.chat().get(p.chat().size() - 1).startsWith("You were sent to the waiting room from Season 3."));
+        assertTrue(p.chat().get(p.chat().size() - 1).startsWith("You were sent to the waiting room from Season 3 · 2026."));
     }
 
     @Test

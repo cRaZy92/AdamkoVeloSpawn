@@ -19,9 +19,24 @@ Copy the jar to Velocity's `plugins/`. First start writes `plugins/adamkovelospa
 
 ## Setup on the proxy
 
-- `velocity.toml`: register `limbo`, `waiting`, `s2`, `s3`; set `try = ["waiting"]`.
-  The plugin logs a warning on start if `try` is anything else.
-- VeloAuth: `auth-server` stays `limbo`. It sends logged-in players to the `try` list
+- `velocity.toml` (all backends on <host>; proxy on <port>):
+
+  ```toml
+  [servers]
+  s3 = "<host>:<port>"
+  s2 = "<host>:<port>"
+  s1 = "<host>:<port>"
+  limbo = "<host>:<port>"
+  waiting = "<host>:<port>"
+  try = ["waiting"]
+  ```
+
+  The plugin logs an error for every configured server missing from `[servers]`, and a warning if
+  `try` is anything other than `["waiting"]`.
+- Server names are permanent IDs (`s1`, `s2`, `s3`, later `s4`); `servers.newest` is only a pointer and
+  years live only in `display-name`. Adding a season = register it in `velocity.toml`, add it under
+  `servers.seasons`, move `newest`, `/avs reload`.
+- VeloAuth (external mode, `server-name: limbo`, `premium.check-enabled: false`): unchanged. It sends logged-in players to the `try` list
   (`waiting`); this plugin redirects that connect to the real season.
 - Remove `velocitypteropower-*.jar` (keep it aside as fallback).
 
@@ -73,6 +88,11 @@ Then `/vauth reload` (or restart).
 | Empty season | Idle timer of `idle-shutdown-minutes`, cancelled by any join or queued player. A sweep every minute re-arms timers for empty running seasons (proxy restart, manual starts). |
 | Proxy restart | Queues lost; `last-servers.json` kept; idle timers re-armed by the sweep. |
 
+## Identity: UUIDs only
+
+Last-server data and queues are keyed by player UUID (offline UUIDs, since VeloAuth runs with premium
+checks off), never by IP — every player currently arrives as <host> through Pangolin.
+
 ## Commands
 
 | Command | Permission | |
@@ -115,7 +135,7 @@ Use `/avs status` before each test to confirm the starting state; `/avs stop s3`
 
 1. **Join with s3 off** — `/avs stop s3`, wait for `offline` in `/avs status`. B joins, logs in.
    Expect: console `Starting s3 via Pelican` (already at PostLogin), B lands in `waiting`, action bar
-   `Starting Season 3… Ns`, then one green "ready" line and a move to s3. No VeloAuth/other errors in chat.
+   `Starting Season 3 · 2026… Ns`, then one green "ready" line and a move to s3. No VeloAuth/other errors in chat.
 2. **Join with s3 running** — B rejoins: straight to s3, no waiting room, no action bar.
 3. **Join while s3 is stopping** — B on s3, A runs `/avs stop s3`, B is kicked to `waiting`
    (`season-down`/`kicked-to-waiting` line). B relogs immediately. Expect: waits through `stopping`,
@@ -127,6 +147,8 @@ Use `/avs status` before each test to confirm the starting state; `/avs stop s3`
 6. **Leave during waiting** — s2 off; B runs `/play s2` from `waiting` and disconnects before ready.
    Expect: console `B left the queue for s2`, s2 still comes up, then `s2 is empty; idle shutdown in 15 min`.
 7. **Last server** — B logs out on s2, rejoins: back on s2 (check `plugins/adamkovelospawn/last-servers.json`).
+   Same with the archive: `/server s1` from s3 (s1 off) → stays on s3 with `Starting Season 1 · 2023…`,
+   moved; relog → back on s1; s1 idles out after 10 min.
 8. **Idle shutdown** — temporarily set `idle-shutdown-minutes: 1`, `/avs reload`. Leave s3 empty:
    `idle shutdown in 1 min` → `Idle shutdown: s3 ... stopping`. Repeat, but join within the minute:
    timer cancelled (`/avs status` shows no idle timer).

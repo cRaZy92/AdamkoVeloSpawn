@@ -1,26 +1,28 @@
 # AdamkoVeloSpawn configuration
-# Every server named here must also be registered in velocity.toml.
-# velocity.toml should have: try = ["waiting"]
+# Every server named here must also be registered in velocity.toml:
+#   [servers]
+#   s3 = "<host>:<port>"
+#   s2 = "<host>:<port>"
+#   s1 = "<host>:<port>"
+#   limbo = "<host>:<port>"
+#   waiting = "<host>:<port>"
+#   try = ["waiting"]
 
 panel:
   url: "http://<host>"        # Pelican, internal address (no trailing slash needed)
-  api-key: "plcn_..."                 # client key of velocity-bot (start/stop only)
+  api-key: "plcn_..."                 # client key of velocity-bot (subuser: Start/Stop/Restart; /resources readable)
 
 servers:
-  auth: limbo                         # VeloAuth's login limbo
-  waiting: waiting                    # always-on waiting room (PicoLimbo)
-  newest: s3                          # the only line to change when s4 arrives
+  auth: limbo                         # VeloAuth's login limbo (PicoLimbo, <port>)
+  waiting: waiting                    # always-on waiting room (PicoLimbo, <port>)
+  newest: s3                          # only a pointer: the only line to change when s4 arrives
+  # Velocity server names never change (s1, s2, s3…); years live only in display-name.
+  # idle-shutdown-minutes: 0 disables idle shutdown for that season.
+  # join-delay-seconds: settle time after the server answers pings.
   seasons:
-    s3:
-      panel-id: "test0003"
-      display-name: "Season 3"
-      idle-shutdown-minutes: 15       # 0 disables idle shutdown for this season
-      join-delay-seconds: 5           # settle time after the server answers pings
-    s2:
-      panel-id: "test0002"
-      display-name: "Season 2"
-      idle-shutdown-minutes: 15
-      join-delay-seconds: 15
+    s3: { panel-id: "test0003", display-name: "Season 3 · 2026",      idle-shutdown-minutes: 15, join-delay-seconds: 5 }
+    s2: { panel-id: "test0002", display-name: "Season 2 · 2024–2026", idle-shutdown-minutes: 15, join-delay-seconds: 15 }
+    s1: { panel-id: "test0001", display-name: "Season 1 · 2023",      idle-shutdown-minutes: 10, join-delay-seconds: 5 }
 
 routing:
   remember-last-server: true

@@ -21,8 +21,8 @@ class MessagesTest {
 
     @Test
     void rendersValues() {
-        Component c = Messages.render("<yellow>Starting {display}… {elapsed}s", "display", "Season 3", "elapsed", 12);
-        assertEquals("Starting Season 3… 12s", plain(c));
+        Component c = Messages.render("<yellow>Starting {display}… {elapsed}s", "display", "Season 3 · 2026", "elapsed", 12);
+        assertEquals("Starting Season 3 · 2026… 12s", plain(c));
     }
 
     @Test

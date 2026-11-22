@@ -26,13 +26,13 @@ class WaitQueueTest {
         net.offline("s3");
         FakePlayer p = inWaiting("Bob");
         queue.enqueue(p.mock, "s3", "waiting");
-        assertEquals("Starting Season 3… 0s", p.lastActionBar());
+        assertEquals("Starting Season 3 · 2026… 0s", p.lastActionBar());
         assertTrue(p.chat().isEmpty(), "no chat while waiting, only the action bar");
 
         net.running("s3");
         net.scheduler.advanceSeconds(2 + 5);
         assertEquals("s3", p.server);
-        assertEquals(List.of("Season 3 is ready, moving you…"), p.chat());
+        assertEquals(List.of("Season 3 · 2026 is ready, moving you…"), p.chat());
         assertFalse(queue.isQueued(p.id));
     }
 
@@ -43,7 +43,7 @@ class WaitQueueTest {
         queue.startTicker();
         queue.enqueue(p.mock, "s3", "waiting");
         net.scheduler.advanceSeconds(12);
-        assertEquals("Starting Season 3… 12s", p.lastActionBar());
+        assertEquals("Starting Season 3 · 2026… 12s", p.lastActionBar());
     }
 
     @Test
@@ -90,7 +90,7 @@ class WaitQueueTest {
         net.scheduler.advanceSeconds(2 + 5 + 10);
         assertEquals(3, p.connectRequests);
         assertEquals("waiting", p.server);
-        assertTrue(p.chat().get(p.chat().size() - 1).startsWith("Couldn't move you to Season 3"));
+        assertTrue(p.chat().get(p.chat().size() - 1).startsWith("Couldn't move you to Season 3 · 2026"));
     }
 
     @Test
@@ -100,7 +100,7 @@ class WaitQueueTest {
         queue.enqueue(p.mock, "s3", "waiting");
         net.scheduler.advanceSeconds(185);
         assertEquals("waiting", p.server);
-        assertEquals(List.of("Season 3 didn't start. Try again in a minute or ping Adam."), p.chat());
+        assertEquals(List.of("Season 3 · 2026 didn't start. Try again in a minute or ping Adam."), p.chat());
         assertFalse(queue.isQueued(p.id));
     }
 
