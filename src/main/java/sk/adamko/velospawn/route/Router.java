@@ -147,8 +147,9 @@ public final class Router {
             if (ready) {
                 return;
             }
-            if (cfg.isSeason(current)) {
-                // Already playing: stay where they are while the target starts, no trip through waiting.
+            if (cfg.isSeason(current) || cfg.waitingServer().equals(current)) {
+                // Already playing, or already in the waiting room: stay where they are while the target
+                // starts. (Redirecting to the waiting room they're in makes Velocity say "already connected".)
                 event.setResult(ServerResult.denied());
                 queue.enqueue(player, season, current);
                 return;

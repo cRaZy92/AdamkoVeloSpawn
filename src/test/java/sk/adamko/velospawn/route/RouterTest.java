@@ -177,6 +177,25 @@ class RouterTest {
     }
 
     @Test
+    void serverS1FromWaitingRoomWhileOff_staysInWaitingWithoutAlreadyConnected() {
+        net.offline("s3");
+        net.offline("s1");
+        FakePlayer p = net.login("Bob");
+        assertEquals("waiting", p.server, "waiting for s3");
+
+        assertEquals(Status.CONNECTION_CANCELLED, net.connect(p, "s1").getStatus(),
+                "a silent cancel, not Velocity's 'already connected'");
+        assertEquals("waiting", p.server);
+        assertEquals("Starting Season 1 · 2023… 0s", p.lastActionBar());
+        assertEquals(1, net.startCalls("s1"));
+
+        net.running("s1");
+        net.scheduler.advanceSeconds(2 + 5);
+        assertEquals("s1", p.server);
+        assertEquals(List.of("limbo", "waiting", "s1"), p.visits());
+    }
+
+    @Test
     void archiveS1FromS3WhileOff_staysOnS3ThenMoved() {
         net.running("s3");
         net.offline("s1");
