@@ -33,6 +33,15 @@ startup:
   poll-interval-seconds: 2
   ping-timeout-ms: 1000               # live readiness ping; never decide from a stale cache
 
+map-mods:
+  # Sends each server its own world ID for Xaero's Minimap/World Map, JourneyMap and VoxelMap,
+  # so maps of s1, s2 and s3 never mix even though everyone joins through the same address.
+  # IDs are derived from the server name (stable forever); override per season with
+  # `map-id: <number>` under servers.seasons.<name> if you need a specific one.
+  enabled: true
+  xaero-repeat-on-switch: 3           # sends right after a server switch, 1 s apart (the mod can miss the first)
+  xaero-resend-seconds: 5             # keep re-sending while connected: restores Xaero's ID after deaths/portals; 0 = off
+
 chat:
   enabled: false                      # network chat, /msg, /r, join/leave lines
   # Messages are forwarded to players on OTHER servers; players on the same

@@ -74,4 +74,5 @@ sourceSets.main {
 
 tasks.jar {
     archiveFileName.set("AdamkoVeloSpawn-${project.version}.jar")
+    from("THIRD_PARTY_NOTICES.md")
 }

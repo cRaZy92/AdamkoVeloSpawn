@@ -99,6 +99,9 @@ public final class AvsCommand implements SimpleCommand {
                 seasons.startElapsedSeconds(season).ifPresent(s -> sb.append(" · starting ").append(s).append("s"));
                 seasons.idleRemainingSeconds(season).ifPresent(s ->
                         sb.append(" · idle stop in ").append(s / 60).append("m").append(s % 60).append("s"));
+                if (cfg.mapMods().enabled()) {
+                    sb.append(" · map id ").append(cfg.mapId(season));
+                }
                 if (season.equals(cfg.newest())) {
                     sb.append(" · <aqua>newest</aqua>");
                 }

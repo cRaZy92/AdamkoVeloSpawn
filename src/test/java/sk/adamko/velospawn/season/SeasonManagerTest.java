@@ -307,7 +307,7 @@ class SeasonManagerTest {
                     "s3", s3.panelId(), s3.displayName(), 0, s3.joinDelaySeconds()));
             return new sk.adamko.velospawn.config.PluginConfig(c.panelUrl(), c.apiKey(), c.authServer(),
                     c.waitingServer(), c.newest(), seasonsCfg, c.rememberLastServer(), c.prestartOnConnect(),
-                    c.startupTimeoutSeconds(), c.pollIntervalSeconds(), c.pingTimeoutMs(), c.chat(), c.messages());
+                    c.startupTimeoutSeconds(), c.pollIntervalSeconds(), c.pingTimeoutMs(), c.chat(), c.messages(), c.mapMods());
         });
         net.running("s3");
         seasons.evaluateIdle("s3");

@@ -14,6 +14,7 @@ import sk.adamko.velospawn.command.AvsCommand;
 import sk.adamko.velospawn.command.PlayCommand;
 import sk.adamko.velospawn.config.ConfigLoader;
 import sk.adamko.velospawn.config.PluginConfig;
+import sk.adamko.velospawn.mapmod.MapIdService;
 import sk.adamko.velospawn.pelican.PelicanClient;
 import sk.adamko.velospawn.route.Router;
 import sk.adamko.velospawn.route.WaitQueue;
@@ -55,6 +56,7 @@ public final class AdamkoVeloSpawn {
     private LastServerStore lastServers;
     private Router router;
     private ChatService chat;
+    private MapIdService mapIds;
 
     @Inject
     public AdamkoVeloSpawn(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
@@ -85,6 +87,9 @@ public final class AdamkoVeloSpawn {
 
         proxy.getEventManager().register(this, router);
         proxy.getEventManager().register(this, chat);
+        mapIds = new MapIdService(this, proxy, logger, this::config);
+        proxy.getEventManager().register(this, mapIds);
+        mapIds.start();
 
         var commands = proxy.getCommandManager();
         commands.register(commands.metaBuilder("avs").aliases("adamkovelospawn").plugin(this).build(),
@@ -97,6 +102,9 @@ public final class AdamkoVeloSpawn {
 
         logger.info("AdamkoVeloSpawn {} ready: seasons {}, newest {}, waiting room '{}'",
                 BuildConstants.VERSION, config.seasonNames(), config.newest(), config.waitingServer());
+        if (config.mapMods().enabled()) {
+            logger.info("Map-mod world IDs: {}", mapIds.describeIds());
+        }
     }
 
     @Subscribe
@@ -106,6 +114,9 @@ public final class AdamkoVeloSpawn {
         }
         if (queue != null) {
             queue.stopTicker();
+        }
+        if (mapIds != null) {
+            mapIds.stop();
         }
         if (lastServers != null) {
             lastServers.save();
@@ -121,6 +132,7 @@ public final class AdamkoVeloSpawn {
         pelican = new PelicanClient(http, fresh.panelUrl(), fresh.apiKey());
         seasons.retainConfigured();
         chat.registerCommands();
+        mapIds.start();
         logger.info("Config reloaded: seasons {}, newest {}", fresh.seasonNames(), fresh.newest());
     }
 

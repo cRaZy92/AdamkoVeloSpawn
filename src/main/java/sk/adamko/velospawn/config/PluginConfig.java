@@ -18,14 +18,29 @@ public record PluginConfig(
         int pollIntervalSeconds,
         int pingTimeoutMs,
         ChatConfig chat,
-        Map<String, String> messages) {
+        Map<String, String> messages,
+        MapModsConfig mapMods) {
 
     public record SeasonConfig(
             String name,
             String panelId,
             String displayName,
             int idleShutdownMinutes,
-            int joinDelaySeconds) {
+            int joinDelaySeconds,
+            Integer mapId) {
+
+        /** Seasons without a map id override. */
+        public SeasonConfig(String name, String panelId, String displayName, int idleShutdownMinutes,
+                            int joinDelaySeconds) {
+            this(name, panelId, displayName, idleShutdownMinutes, joinDelaySeconds, null);
+        }
+    }
+
+    /** World-ID packets for Xaero's Minimap/World Map, JourneyMap and VoxelMap. */
+    public record MapModsConfig(
+            boolean enabled,
+            int xaeroRepeatOnSwitch,
+            int xaeroResendSeconds) {
     }
 
     public record ChatConfig(
@@ -47,6 +62,15 @@ public record PluginConfig(
 
     public List<String> seasonNames() {
         return List.copyOf(seasons.keySet());
+    }
+
+    /** The map-mod world id for a server: the season's override, else derived from the server name. */
+    public int mapId(String serverName) {
+        SeasonConfig sc = seasons.get(serverName);
+        if (sc != null && sc.mapId() != null) {
+            return sc.mapId();
+        }
+        return sk.adamko.velospawn.mapmod.MapIdCodec.deriveId(serverName);
     }
 
     public String message(String key) {

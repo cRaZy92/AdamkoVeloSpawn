@@ -111,7 +111,7 @@ class RouterTest {
     void rememberLastServerOffAlwaysUsesNewest() {
         net.config(c -> new sk.adamko.velospawn.config.PluginConfig(c.panelUrl(), c.apiKey(), c.authServer(),
                 c.waitingServer(), c.newest(), c.seasons(), false, c.prestartOnConnect(), c.startupTimeoutSeconds(),
-                c.pollIntervalSeconds(), c.pingTimeoutMs(), c.chat(), c.messages()));
+                c.pollIntervalSeconds(), c.pingTimeoutMs(), c.chat(), c.messages(), c.mapMods()));
         java.util.UUID id = java.util.UUID.randomUUID();
         net.lastServers.put(id, "s2");
         assertEquals("s3", net.router.destinationFor(id));

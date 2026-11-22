@@ -22,6 +22,7 @@ import sk.adamko.velospawn.Messages;
 import sk.adamko.velospawn.chat.ChatService;
 import sk.adamko.velospawn.config.ConfigLoader;
 import sk.adamko.velospawn.config.PluginConfig;
+import sk.adamko.velospawn.mapmod.MapIdService;
 import sk.adamko.velospawn.pelican.PelicanClient;
 import sk.adamko.velospawn.pelican.PelicanClient.State;
 import sk.adamko.velospawn.route.Router;
@@ -78,6 +79,7 @@ public final class TestNetwork {
     public final LastServerStore lastServers;
     public final Router router;
     public final ChatService chat;
+    public final MapIdService mapIds;
 
     private final Map<String, RegisteredServer> servers = new LinkedHashMap<>();
     private final Map<String, Boolean> up = new HashMap<>();
@@ -118,6 +120,8 @@ public final class TestNetwork {
         lastServers = new LastServerStore(dataDir.resolve("last-servers.json"), logger, Runnable::run);
         router = new Router(plugin, proxy, logger, this::config, seasons, queue, lastServers, messages);
         chat = new ChatService(plugin, proxy, logger, this::config, messages, PelicanClient.newHttpClient());
+        when(proxy.getChannelRegistrar()).thenReturn(mock(com.velocitypowered.api.proxy.messages.ChannelRegistrar.class));
+        mapIds = new MapIdService(plugin, proxy, logger, this::config);
     }
 
     // ------------------------------------------------------------------ config
@@ -136,13 +140,13 @@ public final class TestNetwork {
                 c.pollIntervalSeconds(), c.pingTimeoutMs(),
                 new PluginConfig.ChatConfig(true, c.chat().format(), c.chat().joinFormat(), c.chat().leaveFormat(),
                         c.chat().excludeServers(), ""),
-                c.messages()));
+                c.messages(), c.mapMods()));
     }
 
     public void prestart(boolean on) {
         config(c -> new PluginConfig(c.panelUrl(), c.apiKey(), c.authServer(), c.waitingServer(), c.newest(),
                 c.seasons(), c.rememberLastServer(), on, c.startupTimeoutSeconds(),
-                c.pollIntervalSeconds(), c.pingTimeoutMs(), c.chat(), c.messages()));
+                c.pollIntervalSeconds(), c.pingTimeoutMs(), c.chat(), c.messages(), c.mapMods()));
     }
 
     // ------------------------------------------------------------------ servers
@@ -257,6 +261,7 @@ public final class TestNetwork {
         ServerConnectedEvent connected = new ServerConnectedEvent(p.mock, servers.get(destName), previous);
         router.onServerConnected(connected);
         chat.onServerConnected(connected);
+        mapIds.onPostConnect(new com.velocitypowered.api.event.player.ServerPostConnectEvent(p.mock, previous));
     }
 
     /** Backend kicks the player (crash, stop, ban): Velocity's fallback sends them to the try server. */
@@ -305,6 +310,10 @@ public final class TestNetwork {
         public final List<Component> chatLines = Collections.synchronizedList(new ArrayList<>());
         public final List<Component> actionBars = Collections.synchronizedList(new ArrayList<>());
         public int connectRequests;
+        /** Plugin messages sent to this client: channel id + payload. */
+        public final List<Map.Entry<String, byte[]>> pluginMessages = Collections.synchronizedList(new ArrayList<>());
+        public com.velocitypowered.api.network.ProtocolVersion protocol =
+                com.velocitypowered.api.network.ProtocolVersion.MAXIMUM_VERSION;
 
         FakePlayer(String name) {
             this.name = name;
@@ -315,6 +324,11 @@ public final class TestNetwork {
             doAnswer(i -> chatLines.add(i.getArgument(0))).when(mock).sendMessage(any(Component.class));
             doAnswer(i -> actionBars.add(i.getArgument(0))).when(mock).sendActionBar(any(Component.class));
             when(mock.createConnectionRequest(any(RegisteredServer.class))).thenAnswer(i -> request(i.getArgument(0)));
+            when(mock.getProtocolVersion()).thenAnswer(i -> protocol);
+            when(mock.sendPluginMessage(any(com.velocitypowered.api.proxy.messages.ChannelIdentifier.class), any(byte[].class)))
+                    .thenAnswer(i -> pluginMessages.add(Map.entry(
+                            i.<com.velocitypowered.api.proxy.messages.ChannelIdentifier>getArgument(0).getId(),
+                            i.<byte[]>getArgument(1))));
         }
 
         private ServerConnection connection(String serverName) {
@@ -341,6 +355,18 @@ public final class TestNetwork {
                 return null;
             }).when(b).fireAndForget();
             return b;
+        }
+
+        /** Payloads sent on one channel, in order. */
+        public List<byte[]> sent(String channel) {
+            synchronized (pluginMessages) {
+                return pluginMessages.stream().filter(e -> e.getKey().equals(channel)).map(Map.Entry::getValue).toList();
+            }
+        }
+
+        /** The ServerConnection this player currently has (for building plugin-message events). */
+        public ServerConnection connectionNow() {
+            return connection(server);
         }
 
         public List<String> chat() {

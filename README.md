@@ -113,6 +113,31 @@ checks off), never by IP — every player currently arrives as <host> through Pa
 - Network join line when a player first reaches a season; leave line on disconnect (sent to other servers).
 - `discord-webhook`: chat and join/leave mirrored, `@` mentions disabled.
 
+## Map mods (Xaero's, JourneyMap, VoxelMap)
+
+Everyone joins through the same address, so without help these mods would merge s1, s2 and s3 into one
+map. The plugin gives every server its own world ID, the way MapModCompanion does, but entirely on the
+proxy (nothing to install on the backends):
+
+| Mod | Channel | How |
+| --- | --- | --- |
+| JourneyMap, VoxelMap | `worldinfo:world_id` | The client asks; the proxy answers for the server the player is on (request never reaches the backend). Exact. |
+| Xaero's Minimap / World Map | `xaerominimap:main`, `xaeroworldmap:main` | Pushed right after every server switch (`xaero-repeat-on-switch`, 1 s apart), then re-sent every `xaero-resend-seconds`. |
+
+- **Xaero's limitation:** the mod forgets the ID after every respawn (death, nether/end portal), and
+  Velocity's API can't see respawns. The periodic re-send restores it within `xaero-resend-seconds`
+  (default 5 s); in that gap Xaero's may briefly fall back to its own world detection.
+- IDs are derived from the server name and never change: s1 = `-1463720542`, s2 = `-1463720541`,
+  s3 = `-1463720540` (logged at startup and shown in `/avs status`). `limbo` and `waiting` get their own IDs,
+  so the void never ends up in a season's map. Override with `map-id: <number>` on a season.
+- Existing maps: Xaero's/JourneyMap stored previous maps under the IDs they used before, so they'll start
+  fresh. Moving an old map folder to the new ID's folder in the client's map directory may work, but that's
+  untested.
+- If a backend plugin also sends world IDs on these channels, the proxy rewrites them to its own ID.
+- Clients without these mods ignore the packets. `map-mods.enabled: false` turns everything off.
+- Packet formats are ported from [MapModCompanion](https://github.com/turikhay/MapModCompanion) (MIT;
+  see `THIRD_PARTY_NOTICES.md`) and tested against its byte vectors.
+
 ## Messages
 
 All player-facing text is MiniMessage in `config.yml` → `messages`. Placeholders use `{name}`; player
@@ -121,11 +146,11 @@ New keys added in later versions are filled in automatically on load.
 
 ## Automated tests
 
-`./gradlew test` — 74 tests. The core ones run the real `Router`, `WaitQueue`, `SeasonManager` and
+`./gradlew test` — 98 tests. The core ones run the real `Router`, `WaitQueue`, `SeasonManager` and
 `ChatService` inside a simulated network (`src/test/java/.../testkit`): a fake Pelican panel, a virtual-clock
 scheduler, and mocked Velocity players/servers whose connects fire the same events Velocity does. That
 covers the checklist's logic (prefixed `checklist_` in `RouterTest`) plus timeouts, crashes during startup,
-retries, idle timers and chat. Not covered: the real Velocity event bus, VeloAuth itself, real Pelican HTTP,
+retries, idle timers, chat and map-mod packets. Not covered: the real Velocity event bus, VeloAuth itself, real Pelican HTTP,
 and Minecraft clients — that's what the live checklist below is for.
 
 ## Test procedure (maps to the plan's checklist)
@@ -156,6 +181,9 @@ Use `/avs status` before each test to confirm the starting state; `/avs stop s3`
    B gets `panel-unreachable`, console shows one error per attempt, no repeated start calls.
 10. **Proxy restart** — restart Velocity: `last-servers.json` kept; running empty seasons get an idle
     timer within a minute (`/avs status`).
+12. *(map mods)* With Xaero's Minimap: join s3, walk a bit, `/server s2` — Xaero's shows a separate, empty
+    map for s2; back on s3 the s3 map is intact. Die / use a portal: within ~5 s the map is still s3's.
+    With JourneyMap or VoxelMap the same, without the delay.
 11. *(milestone 4)* `chat.enabled: true`, `/avs reload`: A on s3, B on s2 — chat crosses with
     `[s3]`/`[s2]` prefix, `/msg`, `/r` work across servers, join/leave lines show on the other server.
 

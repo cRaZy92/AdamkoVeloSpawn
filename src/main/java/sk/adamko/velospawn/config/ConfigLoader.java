@@ -45,7 +45,7 @@ public final class ConfigLoader {
         ConfigurationNode defaults = loadDefaults();
 
         // Fill in keys added in newer versions, but never re-add seasons the user removed.
-        for (String section : List.of("panel", "routing", "startup", "chat", "messages")) {
+        for (String section : List.of("panel", "routing", "startup", "chat", "map-mods", "messages")) {
             root.node(section).mergeFrom(defaults.node(section));
         }
         return parse(root);
@@ -71,7 +71,8 @@ public final class ConfigLoader {
                     n.node("panel-id").getString(""),
                     n.node("display-name").getString(name),
                     n.node("idle-shutdown-minutes").getInt(15),
-                    n.node("join-delay-seconds").getInt(5)));
+                    n.node("join-delay-seconds").getInt(5),
+                    n.node("map-id").virtual() || n.node("map-id").isNull() ? null : n.node("map-id").getInt()));
         }
 
         ConfigurationNode chat = root.node("chat");
@@ -82,6 +83,12 @@ public final class ConfigLoader {
                 chat.node("leave-format").getString(""),
                 new LinkedHashSet<>(chat.node("exclude-servers").getList(String.class, List.of())),
                 chat.node("discord-webhook").getString(""));
+
+        ConfigurationNode maps = root.node("map-mods");
+        PluginConfig.MapModsConfig mapMods = new PluginConfig.MapModsConfig(
+                maps.node("enabled").getBoolean(true),
+                Math.max(1, maps.node("xaero-repeat-on-switch").getInt(3)),
+                Math.max(0, maps.node("xaero-resend-seconds").getInt(5)));
 
         Map<String, String> messages = new LinkedHashMap<>();
         for (Map.Entry<Object, ? extends ConfigurationNode> e : root.node("messages").childrenMap().entrySet()) {
@@ -106,6 +113,7 @@ public final class ConfigLoader {
                 Math.max(1, root.node("startup", "poll-interval-seconds").getInt(2)),
                 Math.max(100, root.node("startup", "ping-timeout-ms").getInt(1000)),
                 chatConfig,
-                java.util.Collections.unmodifiableMap(messages));
+                java.util.Collections.unmodifiableMap(messages),
+                mapMods);
     }
 }
