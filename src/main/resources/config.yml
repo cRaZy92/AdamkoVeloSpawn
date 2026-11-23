@@ -119,3 +119,7 @@ messages:                             # MiniMessage, all player-facing text live
   seasons-here: "<green>You are here"
   seasons-chat-header: "<gold>── Seasons ──"
   seasons-chat-line: " {name} <gray>·</gray> {state}"
+  # Login hint, sent once: on a player's first visit, and again when a season is added ({seasons}: the new ones).
+  # Set either to "" to turn it off.
+  seasons-hint-first: "<gray>Tip: type <click:run_command:/seasons><hover:show_text:'Browse all seasons'><white>/seasons</white></hover></click> to browse every season, its stats, and play on any of them. (For old times' sake)"
+  seasons-hint-new: "<gold>New: {seasons}!</gold> <gray>Type <click:run_command:/seasons><hover:show_text:'Browse all seasons'><white>/seasons</white></hover></click> to browse all seasons."

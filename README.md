@@ -189,6 +189,11 @@ played person and total deaths.
   `plugins/adamkovelospawn/season-stats.json`; finished seasons never need to run again.
 - A season with no numbers yet says "No stats yet". After installing the companion on an old season,
   start it once (`/avs start s1`) and join it for a moment.
+- A login hint points players to `/seasons`, a couple of seconds after they reach a season server (never in the auth
+  or waiting limbo): once on
+  their first visit (`seasons-hint-first`), and once more whenever a season is added to `servers.seasons`
+  that they haven't been told about (`seasons-hint-new`, naming the new seasons). Who was told about which
+  seasons is kept in `plugins/adamkovelospawn/seasons-seen.json`. Set a hint to `""` to turn it off.
 - Wording is in `messages` (`seasons-*`; the lore templates are split into tooltip lines at `\n`).
 
 ## Messages

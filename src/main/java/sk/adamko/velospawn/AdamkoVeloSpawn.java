@@ -18,6 +18,7 @@ import sk.adamko.velospawn.companion.CompanionChannel;
 import sk.adamko.velospawn.config.ConfigLoader;
 import sk.adamko.velospawn.config.PluginConfig;
 import sk.adamko.velospawn.mapmod.MapIdService;
+import sk.adamko.velospawn.menu.SeasonsHint;
 import sk.adamko.velospawn.menu.SeasonsMenu;
 import sk.adamko.velospawn.pelican.PelicanClient;
 import sk.adamko.velospawn.route.Router;
@@ -25,6 +26,7 @@ import sk.adamko.velospawn.route.WaitQueue;
 import sk.adamko.velospawn.season.SeasonManager;
 import sk.adamko.velospawn.store.LastServerStore;
 import sk.adamko.velospawn.store.SeasonStatsStore;
+import sk.adamko.velospawn.store.SeenSeasonsStore;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -64,6 +66,7 @@ public final class AdamkoVeloSpawn {
     private DiscordBot discordBot;
     private MapIdService mapIds;
     private SeasonStatsStore seasonStats;
+    private SeenSeasonsStore seenSeasons;
     private CompanionChannel companion;
 
     @Inject
@@ -92,6 +95,8 @@ public final class AdamkoVeloSpawn {
         lastServers.load();
         seasonStats = new SeasonStatsStore(dataDirectory.resolve("season-stats.json"), logger, ioExecutor);
         seasonStats.load();
+        seenSeasons = new SeenSeasonsStore(dataDirectory.resolve("seasons-seen.json"), logger, ioExecutor);
+        seenSeasons.load();
         router = new Router(this, proxy, logger, this::config, seasons, queue, lastServers, messages);
         chat = new ChatService(this, proxy, logger, this::config, messages, http);
 
@@ -111,6 +116,7 @@ public final class AdamkoVeloSpawn {
         SeasonsMenu seasonsMenu = new SeasonsMenu(this::config, seasons, seasonStats, messages);
         commands.register(commands.metaBuilder("seasons").plugin(this).build(),
                 new SeasonsCommand(seasonsMenu, companion));
+        proxy.getEventManager().register(this, new SeasonsHint(this, proxy, this::config, messages, seenSeasons));
         companion.setMenuClickHandler((player, season) ->
                 SeasonsCommand.onMenuClick(router, this::config, player, season));
         chat.registerCommands();
@@ -147,6 +153,9 @@ public final class AdamkoVeloSpawn {
         }
         if (seasonStats != null) {
             seasonStats.save();
+        }
+        if (seenSeasons != null) {
+            seenSeasons.save();
         }
         ioExecutor.shutdown();
     }
