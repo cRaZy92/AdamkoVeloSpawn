@@ -357,4 +357,43 @@ class RouterTest {
         assertTrue(net.panel.calls.isEmpty());
         assertEquals(1, p.chat().size());
     }
+
+    // ------------------------------------------------------------------ play (used by /play and the /seasons menu)
+
+    @Test
+    void playToRunningSeasonConnects() {
+        net.running("s3");
+        net.running("s2");
+        FakePlayer p = net.login("Bob");
+        net.router.play(p.mock, "s2");
+        assertEquals("s2", p.server);
+    }
+
+    @Test
+    void playToOffSeasonQueuesAndStartsIt() {
+        net.running("s3");
+        net.offline("s2");
+        FakePlayer p = net.login("Bob");
+        net.router.play(p.mock, "s2");
+        assertEquals(1, net.startCalls("s2"));
+        assertEquals("s3", p.server, "stays where they are while s2 starts");
+    }
+
+    @Test
+    void playToCurrentSeasonSaysAlreadyThere() {
+        net.running("s2");
+        FakePlayer p = net.login("Bob");
+        net.connect(p, "s2");
+        net.router.play(p.mock, "s2");
+        assertTrue(p.chat().contains("You are already on Season 2 · 2024–2026."), p.chat().toString());
+    }
+
+    @Test
+    void playToUnknownSeasonSaysSo() {
+        net.running("s3");
+        FakePlayer p = net.login("Bob");
+        net.router.play(p.mock, "s9");
+        assertEquals("s3", p.server);
+        assertTrue(p.chat().stream().anyMatch(l -> l.startsWith("Unknown season s9")), p.chat().toString());
+    }
 }

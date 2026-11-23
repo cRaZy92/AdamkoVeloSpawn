@@ -75,6 +75,36 @@ public final class Router {
         return cfg.seasonNames().isEmpty() ? null : cfg.seasonNames().get(0);
     }
 
+    /**
+     * Sends a player to a season on request (/play, the /seasons menu): straight there if it is up,
+     * otherwise they stay where they are (season or waiting room) while it starts and move once ready.
+     */
+    public void play(Player player, String season) {
+        PluginConfig cfg = config.get();
+        if (season == null || !cfg.isSeason(season)) {
+            messages.send(player, "unknown-season",
+                    "season", season == null ? "" : season,
+                    "seasons", String.join(", ", cfg.seasonNames()));
+            return;
+        }
+        String current = player.getCurrentServer().map(c -> c.getServerInfo().getName()).orElse("");
+        if (current.equals(season)) {
+            messages.send(player, "already-there", "display", cfg.season(season).displayName(), "season", season);
+            return;
+        }
+        Optional<RegisteredServer> server = proxy.getServer(season);
+        if (server.isEmpty() || current.isEmpty()) {
+            return;
+        }
+        seasons.isReadyNow(season).thenAccept(ready -> {
+            if (ready) {
+                player.createConnectionRequest(server.get()).fireAndForget();
+            } else {
+                queue.enqueue(player, season, current);
+            }
+        });
+    }
+
     // ------------------------------------------------------------------ events
 
     @Subscribe(priority = 0)
