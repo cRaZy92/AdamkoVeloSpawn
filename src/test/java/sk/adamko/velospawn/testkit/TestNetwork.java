@@ -82,6 +82,7 @@ public final class TestNetwork {
     public final MapIdService mapIds;
     public final sk.adamko.velospawn.store.SeasonStatsStore stats;
     public final sk.adamko.velospawn.companion.CompanionChannel companion;
+    public final sk.adamko.velospawn.menu.SeasonsMenu menu;
     /** Every Discord webhook body posted, in order. */
     public final List<com.google.gson.JsonObject> discordPosts = new java.util.concurrent.CopyOnWriteArrayList<>();
 
@@ -142,6 +143,9 @@ public final class TestNetwork {
         mapIds = new MapIdService(plugin, proxy, logger, this::config);
         stats = new sk.adamko.velospawn.store.SeasonStatsStore(dataDir.resolve("season-stats.json"), logger, Runnable::run);
         companion = new sk.adamko.velospawn.companion.CompanionChannel(proxy, logger, this::config, chat, stats);
+        menu = new sk.adamko.velospawn.menu.SeasonsMenu(this::config, seasons, stats, messages);
+        companion.setMenuClickHandler((player, season) ->
+                sk.adamko.velospawn.command.SeasonsCommand.onMenuClick(router, this::config, player, season));
     }
 
     // ------------------------------------------------------------------ config

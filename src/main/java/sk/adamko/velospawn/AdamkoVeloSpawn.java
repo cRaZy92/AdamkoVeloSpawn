@@ -12,11 +12,13 @@ import org.slf4j.Logger;
 import sk.adamko.velospawn.chat.ChatService;
 import sk.adamko.velospawn.chat.DiscordBot;
 import sk.adamko.velospawn.command.AvsCommand;
-import sk.adamko.velospawn.companion.CompanionChannel;
 import sk.adamko.velospawn.command.PlayCommand;
+import sk.adamko.velospawn.command.SeasonsCommand;
+import sk.adamko.velospawn.companion.CompanionChannel;
 import sk.adamko.velospawn.config.ConfigLoader;
 import sk.adamko.velospawn.config.PluginConfig;
 import sk.adamko.velospawn.mapmod.MapIdService;
+import sk.adamko.velospawn.menu.SeasonsMenu;
 import sk.adamko.velospawn.pelican.PelicanClient;
 import sk.adamko.velospawn.route.Router;
 import sk.adamko.velospawn.route.WaitQueue;
@@ -106,6 +108,11 @@ public final class AdamkoVeloSpawn {
         commands.register(commands.metaBuilder("avs").aliases("adamkovelospawn").plugin(this).build(),
                 new AvsCommand(this));
         commands.register(commands.metaBuilder("play").plugin(this).build(), new PlayCommand(this));
+        SeasonsMenu seasonsMenu = new SeasonsMenu(this::config, seasons, seasonStats, messages);
+        commands.register(commands.metaBuilder("seasons").plugin(this).build(),
+                new SeasonsCommand(seasonsMenu, companion));
+        companion.setMenuClickHandler((player, season) ->
+                SeasonsCommand.onMenuClick(router, this::config, player, season));
         chat.registerCommands();
         discordBot = new DiscordBot(logger, () -> this.config.chat().discord(), () -> this.config.chat().enabled(),
                 chat::fromDiscord);
