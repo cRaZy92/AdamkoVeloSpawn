@@ -68,8 +68,10 @@ final class SeasonsMenuView implements Listener {
         }
         int count = Math.max(1, Math.min(99, item.count()));
         ItemStack stack = new ItemStack(material);
+        // The item's real limit (ItemMeta#getMaxStackSize throws unless the meta overrides it).
+        boolean raiseLimit = count > stack.getMaxStackSize();
         stack.editMeta(meta -> {
-            if (count > meta.getMaxStackSize()) {
+            if (raiseLimit) {
                 meta.setMaxStackSize(count); // buckets and tools don't stack; let this one show its number
             }
             meta.displayName(noItalic(item.name()));
