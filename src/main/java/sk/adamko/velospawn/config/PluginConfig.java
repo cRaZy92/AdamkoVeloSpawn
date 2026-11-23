@@ -19,7 +19,22 @@ public record PluginConfig(
         int pingTimeoutMs,
         ChatConfig chat,
         Map<String, String> messages,
-        MapModsConfig mapMods) {
+        MapModsConfig mapMods,
+        SeasonsMenuConfig seasonsMenu) {
+
+    /** Without a {@code seasons-menu} section: the defaults. */
+    public PluginConfig(String panelUrl, String apiKey, String authServer, String waitingServer, String newest,
+                        Map<String, SeasonConfig> seasons, boolean rememberLastServer, boolean prestartOnConnect,
+                        int startupTimeoutSeconds, int pollIntervalSeconds, int pingTimeoutMs, ChatConfig chat,
+                        Map<String, String> messages, MapModsConfig mapMods) {
+        this(panelUrl, apiKey, authServer, waitingServer, newest, seasons, rememberLastServer, prestartOnConnect,
+                startupTimeoutSeconds, pollIntervalSeconds, pingTimeoutMs, chat, messages, mapMods,
+                new SeasonsMenuConfig(true));
+    }
+
+    /** The /seasons menu; {@code showNumbers}: the season number as the item count. */
+    public record SeasonsMenuConfig(boolean showNumbers) {
+    }
 
     public record SeasonConfig(
             String name,

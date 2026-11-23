@@ -177,7 +177,8 @@ played person and total deaths.
 
 - On a season server with the companion, `/seasons` opens a chest with one item per season (the item is
   `icon:` under `servers.seasons.<name>`, a Minecraft item id without `minecraft:`, default `PAPER`), centred
-  in the row, with the season number from the server name (s3 → 3) as the item count. Your current season
+  in the row, with the season number from the server name (s3 → 3) as the item count
+  (`seasons-menu.show-numbers: false` turns that off). Your current season
   glows and says "You are here"; clicking another one is the same as `/play <season>`. In the waiting
   room or the auth limbo (PicoLimbo can't show a chest) you get the same seasons as a chat list: hover
   for the numbers, click to visit. Opening the menu never starts anything.

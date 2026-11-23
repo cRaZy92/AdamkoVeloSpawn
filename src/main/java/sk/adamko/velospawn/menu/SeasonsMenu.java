@@ -114,7 +114,8 @@ public final class SeasonsMenu {
         }
         lore.add(messages.get(current ? "seasons-here" : "seasons-click"));
         Component name = Messages.render("<white>{display}", "display", sc.displayName());
-        return new Entry(sc.name(), sc.icon(), seasonNumber(sc.name()), name, List.copyOf(lore), current);
+        int count = config.get().seasonsMenu().showNumbers() ? seasonNumber(sc.name()) : 1;
+        return new Entry(sc.name(), sc.icon(), count, name, List.copyOf(lore), current);
     }
 
     /** The digits in the server name (s3 → 3), as an item count: 1 when there are none, at most 99. */

@@ -106,6 +106,20 @@ class SeasonsMenuTest {
     }
 
     @Test
+    void numbersCanBeTurnedOff() throws Exception {
+        net.config(c -> new sk.adamko.velospawn.config.PluginConfig(c.panelUrl(), c.apiKey(), c.authServer(),
+                c.waitingServer(), c.newest(), c.seasons(), c.rememberLastServer(), c.prestartOnConnect(),
+                c.startupTimeoutSeconds(), c.pollIntervalSeconds(), c.pingTimeoutMs(), c.chat(), c.messages(),
+                c.mapMods(), new sk.adamko.velospawn.config.PluginConfig.SeasonsMenuConfig(false)));
+        assertEquals(List.of(1, 1, 1), entries("waiting").stream().map(Entry::count).toList());
+    }
+
+    @Test
+    void numbersAreShownByDefault() throws Exception {
+        assertEquals(List.of(3, 2, 1), entries("waiting").stream().map(Entry::count).toList());
+    }
+
+    @Test
     void seasonNumberComesFromTheServerName() {
         assertEquals(3, SeasonsMenu.seasonNumber("s3"));
         assertEquals(12, SeasonsMenu.seasonNumber("season12"));

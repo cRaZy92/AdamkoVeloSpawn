@@ -60,6 +60,16 @@ class ConfigLoaderTest {
     }
 
     @Test
+    void seasonNumbersShownByDefaultAndCanBeTurnedOff(@TempDir Path dir) throws Exception {
+        assertTrue(ConfigLoader.load(dir).seasonsMenu().showNumbers());
+        Files.writeString(dir.resolve("config.yml"), """
+                seasons-menu:
+                  show-numbers: false
+                """);
+        assertFalse(ConfigLoader.load(dir).seasonsMenu().showNumbers());
+    }
+
+    @Test
     void seasonIconsAreParsed(@TempDir Path dir) throws Exception {
         PluginConfig cfg = ConfigLoader.load(dir);
         assertEquals("GRASS_BLOCK", cfg.season("s3").icon());

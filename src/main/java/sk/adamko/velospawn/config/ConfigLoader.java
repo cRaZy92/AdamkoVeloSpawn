@@ -45,7 +45,7 @@ public final class ConfigLoader {
         ConfigurationNode defaults = loadDefaults();
 
         // Fill in keys added in newer versions, but never re-add seasons the user removed.
-        for (String section : List.of("panel", "routing", "startup", "chat", "map-mods", "messages")) {
+        for (String section : List.of("panel", "routing", "startup", "chat", "map-mods", "seasons-menu", "messages")) {
             root.node(section).mergeFrom(defaults.node(section));
         }
         return parse(root);
@@ -150,6 +150,7 @@ public final class ConfigLoader {
                 Math.max(100, root.node("startup", "ping-timeout-ms").getInt(1000)),
                 chatConfig,
                 java.util.Collections.unmodifiableMap(messages),
-                mapMods);
+                mapMods,
+                new PluginConfig.SeasonsMenuConfig(root.node("seasons-menu", "show-numbers").getBoolean(true)));
     }
 }

@@ -35,6 +35,9 @@ startup:
   poll-interval-seconds: 2
   ping-timeout-ms: 1000               # live readiness ping; never decide from a stale cache
 
+seasons-menu:
+  show-numbers: true                  # the season number (from the server name, s3 → 3) as the item count
+
 map-mods:
   # Sends each server its own world ID for Xaero's Minimap/World Map, JourneyMap and VoxelMap,
   # so maps of s1, s2 and s3 never mix even though everyone joins through the same address.
