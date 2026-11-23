@@ -1,6 +1,7 @@
 package sk.adamko.velospawn.companion;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.papermc.paper.advancement.AdvancementDisplay;
 import io.papermc.paper.text.PaperComponents;
 import net.kyori.adventure.text.Component;
@@ -20,8 +21,8 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Season-server side of AdamkoVeloSpawn. The proxy can't see deaths, advancements or AFK, so this
- * forwards them over a plugin-message channel; the proxy posts them to Discord. Nothing is shown or
- * changed on this server.
+ * forwards them over a plugin-message channel; the proxy posts them to Discord. It also counts this
+ * season's stats and draws the proxy's /seasons chest menu; nothing else is shown or changed here.
  *
  * <p>Wire format (UTF-8 JSON, one message per event):
  * {@code {"v":1,"type":"world|afk|death|advancement","player":"Steve","uuid":"…","world":"world_nether",
@@ -48,6 +49,20 @@ public final class Companion extends JavaPlugin implements Listener {
     public void onEnable() {
         saveDefaultConfig();
         getServer().getMessenger().registerOutgoingPluginChannel(this, CHANNEL);
+        SeasonsMenuView menu = new SeasonsMenuView(this);
+        getServer().getPluginManager().registerEvents(menu, this);
+        getServer().getMessenger().registerIncomingPluginChannel(this, CHANNEL, (channel, player, bytes) -> {
+            JsonObject o;
+            try {
+                o = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject();
+            } catch (RuntimeException e) {
+                getLogger().fine("Ignoring malformed message from the proxy: " + e);
+                return;
+            }
+            if (o.has("type") && "menu".equals(o.get("type").getAsString())) {
+                menu.open(player, o);
+            }
+        });
         stats = new StatsCollector(this);
         stats.start(getConfig().getLong("stats-interval-minutes", 10));
         getServer().getPluginManager().registerEvents(this, this);
