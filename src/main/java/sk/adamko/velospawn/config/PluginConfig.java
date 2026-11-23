@@ -27,9 +27,19 @@ public record PluginConfig(
             String displayName,
             int idleShutdownMinutes,
             int joinDelaySeconds,
-            Integer mapId) {
+            Integer mapId,
+            String icon) {
 
-        /** Seasons without a map id override. */
+        /** Item material shown for seasons without an {@code icon:} in the /seasons menu. */
+        public static final String DEFAULT_ICON = "PAPER";
+
+        /** Seasons with the default /seasons icon. */
+        public SeasonConfig(String name, String panelId, String displayName, int idleShutdownMinutes,
+                            int joinDelaySeconds, Integer mapId) {
+            this(name, panelId, displayName, idleShutdownMinutes, joinDelaySeconds, mapId, DEFAULT_ICON);
+        }
+
+        /** Seasons without a map id override and with the default icon. */
         public SeasonConfig(String name, String panelId, String displayName, int idleShutdownMinutes,
                             int joinDelaySeconds) {
             this(name, panelId, displayName, idleShutdownMinutes, joinDelaySeconds, null);

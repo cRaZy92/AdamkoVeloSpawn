@@ -56,6 +56,15 @@ class ConfigLoaderTest {
         assertEquals("<green>go", cfg.message("ready")); // user value kept
         assertTrue(cfg.message("start-failed").contains("{display}")); // missing key filled
         assertEquals(2, cfg.pollIntervalSeconds());
+        assertEquals("PAPER", cfg.season("s4").icon(), "no icon set: paper");
+    }
+
+    @Test
+    void seasonIconsAreParsed(@TempDir Path dir) throws Exception {
+        PluginConfig cfg = ConfigLoader.load(dir);
+        assertEquals("GRASS_BLOCK", cfg.season("s3").icon());
+        assertEquals("SAND", cfg.season("s2").icon());
+        assertEquals("OAK_SAPLING", cfg.season("s1").icon());
     }
 
     @Test

@@ -107,7 +107,8 @@ public final class ConfigLoader {
                     n.node("display-name").getString(name),
                     n.node("idle-shutdown-minutes").getInt(15),
                     n.node("join-delay-seconds").getInt(5),
-                    n.node("map-id").virtual() || n.node("map-id").isNull() ? null : n.node("map-id").getInt()));
+                    n.node("map-id").virtual() || n.node("map-id").isNull() ? null : n.node("map-id").getInt(),
+                    n.node("icon").getString(PluginConfig.SeasonConfig.DEFAULT_ICON).trim().toUpperCase(java.util.Locale.ROOT)));
         }
 
         ConfigurationNode chat = root.node("chat");

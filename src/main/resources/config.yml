@@ -20,10 +20,11 @@ servers:
   # idle-shutdown-minutes: 0 disables idle shutdown for that season.
   # join-delay-seconds: settle time after the server answers pings.
   # panel-id: the short server ID from the Pelican panel URL (must be filled in).
+  # icon: the item shown for the season in the /seasons menu (a Minecraft item id, e.g. GRASS_BLOCK; default PAPER).
   seasons:
-    s3: { panel-id: "", display-name: "Season 3 · 2026",      idle-shutdown-minutes: 15, join-delay-seconds: 5 }
-    s2: { panel-id: "", display-name: "Season 2 · 2024–2026", idle-shutdown-minutes: 15, join-delay-seconds: 15 }
-    s1: { panel-id: "", display-name: "Season 1 · 2023",      idle-shutdown-minutes: 10, join-delay-seconds: 5 }
+    s3: { panel-id: "", display-name: "Season 3 · 2026",      idle-shutdown-minutes: 15, join-delay-seconds: 5,  icon: GRASS_BLOCK }
+    s2: { panel-id: "", display-name: "Season 2 · 2024–2026", idle-shutdown-minutes: 15, join-delay-seconds: 15, icon: SAND }
+    s1: { panel-id: "", display-name: "Season 1 · 2023",      idle-shutdown-minutes: 10, join-delay-seconds: 5,  icon: OAK_SAPLING }
 
 routing:
   remember-last-server: true
@@ -103,3 +104,15 @@ messages:                             # MiniMessage, all player-facing text live
   msg-no-reply: "<red>Nobody to reply to."
   msg-usage: "<red>Usage: /msg \\<player> \\<message>"
   reply-usage: "<red>Usage: /r \\<message>"
+  # /seasons menu. Lore templates are split into tooltip lines at \n.
+  seasons-title: "Seasons"
+  seasons-state-online: "<green>● Online · {count} playing"
+  seasons-state-starting: "<yellow>● Starting…"
+  seasons-state-offline: "<gray>○ Offline"
+  seasons-state-unknown: "<gray>? Unknown"
+  seasons-lore: "{state}\n\n<white>{players}</white> <gray>players\n<white>{days}</white> <gray>in-game days\n<white>{hours}</white> <gray>hours played together\n<gray>Most played: <white>{top}</white> ({top_hours} h)\n<white>{deaths}</white> <gray>deaths"
+  seasons-lore-no-stats: "{state}\n\n<gray>No stats yet"
+  seasons-click: "<yellow>Click to visit"
+  seasons-here: "<green>You are here"
+  seasons-chat-header: "<gold>── Seasons ──"
+  seasons-chat-line: " {name} <gray>·</gray> {state}"

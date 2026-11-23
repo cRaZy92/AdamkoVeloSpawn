@@ -19,6 +19,8 @@ public final class FakePanel implements PanelApi {
     public boolean reachable = true;
     public boolean powerFails;
     public int stateCalls;
+    /** State requests never answer (a hung panel). */
+    public boolean hangs;
 
     public void set(String panelId, State state) {
         states.put(panelId, state);
@@ -35,6 +37,9 @@ public final class FakePanel implements PanelApi {
     @Override
     public CompletableFuture<State> state(String serverId) {
         stateCalls++;
+        if (hangs) {
+            return new CompletableFuture<>();
+        }
         if (!reachable) {
             return CompletableFuture.failedFuture(new PanelException("connection refused (fake)"));
         }
