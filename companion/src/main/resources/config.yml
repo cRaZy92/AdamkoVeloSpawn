@@ -1,0 +1,2 @@
+# Season stats for the proxy's /seasons menu are counted at startup and then every N minutes.
+stats-interval-minutes: 10

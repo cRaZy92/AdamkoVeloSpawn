@@ -26,7 +26,8 @@ import java.nio.charset.StandardCharsets;
  * <p>Wire format (UTF-8 JSON, one message per event):
  * {@code {"v":1,"type":"world|afk|death|advancement","player":"Steve","uuid":"…","world":"world_nether",
  * "env":"NETHER","afk":true,"text":"…"}}. Every message carries the player's current world; "world" is sent
- * on its own when the player arrives and whenever they change worlds.
+ * on its own when the player arrives and whenever they change worlds. Season stats for /seasons go as
+ * {@code {"v":1,"type":"stats",...}} (see {@link SeasonStats}).
  *
  * <p>Paper only sends plugin messages on channels the player's connection has registered. A vanilla client
  * never registers ours, so the proxy registers it on the player's behalf right after each server switch;
@@ -41,9 +42,14 @@ public final class Companion extends JavaPlugin implements Listener {
     private static final PlainTextComponentSerializer PLAIN =
             PlainTextComponentSerializer.builder().flattener(PaperComponents.flattener()).build();
 
+    private StatsCollector stats;
+
     @Override
     public void onEnable() {
+        saveDefaultConfig();
         getServer().getMessenger().registerOutgoingPluginChannel(this, CHANNEL);
+        stats = new StatsCollector(this);
+        stats.start(getConfig().getLong("stats-interval-minutes", 10));
         getServer().getPluginManager().registerEvents(this, this);
         if (getServer().getPluginManager().getPlugin("Essentials") != null) {
             getServer().getPluginManager().registerEvents(new AfkListener(this), this);
@@ -58,6 +64,7 @@ public final class Companion extends JavaPlugin implements Listener {
     public void onChannelRegistered(PlayerRegisterChannelEvent event) {
         if (CHANNEL.equals(event.getChannel())) {
             send(event.getPlayer(), "world", null, null);
+            stats.latest().ifPresent(s -> sendJson(event.getPlayer(), s.toJson()));
         }
     }
 
@@ -89,9 +96,6 @@ public final class Companion extends JavaPlugin implements Listener {
     }
 
     void send(Player player, String type, String text, Boolean afk) {
-        if (!player.isOnline() || !player.getListeningPluginChannels().contains(CHANNEL)) {
-            return; // plugin messages travel over the player's own connection, once the proxy registered it
-        }
         JsonObject o = new JsonObject();
         o.addProperty("v", 1);
         o.addProperty("type", type);
@@ -105,6 +109,15 @@ public final class Companion extends JavaPlugin implements Listener {
         if (afk != null) {
             o.addProperty("afk", afk);
         }
-        player.sendPluginMessage(this, CHANNEL, o.toString().getBytes(StandardCharsets.UTF_8));
+        sendJson(player, o);
+    }
+
+    /** Sends one message to the proxy over this player's connection; false if it can't carry it (yet). */
+    boolean sendJson(Player player, JsonObject message) {
+        if (!player.isOnline() || !player.getListeningPluginChannels().contains(CHANNEL)) {
+            return false; // plugin messages travel over the player's own connection, once the proxy registered it
+        }
+        player.sendPluginMessage(this, CHANNEL, message.toString().getBytes(StandardCharsets.UTF_8));
+        return true;
     }
 }
