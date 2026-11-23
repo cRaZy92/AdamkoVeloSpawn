@@ -15,20 +15,17 @@ import org.slf4j.Logger;
 import sk.adamko.velospawn.Messages;
 import sk.adamko.velospawn.config.PluginConfig;
 
-import com.velocitypowered.api.event.player.ServerPostConnectEvent;
-import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import sk.adamko.velospawn.chat.DiscordRelay.Place;
 
 import java.net.http.HttpClient;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -58,7 +55,6 @@ public final class ChatService {
 
     /** How long a join/switch post waits for the companion to report the player's world. */
     static final int WORLD_WAIT_SECONDS = 3;
-    private static final MinecraftChannelIdentifier REGISTER = MinecraftChannelIdentifier.from("minecraft:register");
 
     private record WorldInfo(String server, String name, String environment) {
     }
@@ -68,8 +64,8 @@ public final class ChatService {
 
     /** Each player's current world, as reported by the companion on their current server. */
     private final Map<UUID, WorldInfo> worlds = new ConcurrentHashMap<>();
-    /** Servers the companion has been heard from; only there is a join post worth holding for the world. */
-    private final Set<String> companionServers = ConcurrentHashMap.newKeySet();
+    /** Whether the companion runs on a server; only there is a join post worth holding for the world. */
+    private volatile Predicate<String> hasCompanion = server -> false;
     private final Map<UUID, Pending> pending = new ConcurrentHashMap<>();
 
     public ChatService(Object plugin, ProxyServer proxy, Logger logger, Supplier<PluginConfig> config,
@@ -160,25 +156,9 @@ public final class ChatService {
         announceOnDiscord(id, server, at -> discord.join(player.getUsername(), at));
     }
 
-    /**
-     * Lets the companion on the new server talk to us: Paper only sends plugin messages on channels the
-     * player's connection registered, and a vanilla client never registers ours, so the proxy does it.
-     */
-    @Subscribe
-    public void onPostConnect(ServerPostConnectEvent event) {
-        if (!enabled()) {
-            return;
-        }
-        event.getPlayer().getCurrentServer().ifPresent(conn -> {
-            if (!excluded(conn.getServerInfo().getName())) {
-                conn.sendPluginMessage(REGISTER, BACKEND_EVENTS.getId().getBytes(StandardCharsets.UTF_8));
-            }
-        });
-    }
-
     /** Posts now, or (where the companion runs) once it has said which world the player is in. */
     private void announceOnDiscord(UUID id, String server, Consumer<Place> post) {
-        if (!companionServers.contains(server)) {
+        if (!hasCompanion.test(server)) {
             post.accept(place(id, server));
             return;
         }
@@ -234,40 +214,20 @@ public final class ChatService {
 
     // ------------------------------------------------------------------ season-server events
 
-    /** Channel the AdamkoVeloSpawn-Companion plugin on the season servers sends events on. */
-    public static final MinecraftChannelIdentifier BACKEND_EVENTS =
-            MinecraftChannelIdentifier.from("adamkovelospawn:events");
-
-    public void registerChannel() {
-        proxy.getChannelRegistrar().register(BACKEND_EVENTS);
+    /** Tells whether the companion runs on a server; set by the companion channel. */
+    public void setCompanionCheck(Predicate<String> hasCompanion) {
+        this.hasCompanion = hasCompanion;
     }
 
     /**
-     * AFK, deaths and advancements from the companion plugin, mirrored to Discord. Only a season
-     * server can send these: the same channel from a client is dropped, and nothing on it is forwarded.
+     * World changes, AFK, deaths and advancements from the companion plugin (already parsed and checked
+     * to come from the server by the companion channel), mirrored to Discord.
      */
-    @Subscribe
-    public void onPluginMessage(com.velocitypowered.api.event.connection.PluginMessageEvent event) {
-        if (!event.getIdentifier().equals(BACKEND_EVENTS)) {
-            return;
-        }
-        event.setResult(com.velocitypowered.api.event.connection.PluginMessageEvent.ForwardResult.handled());
-        if (!(event.getSource() instanceof com.velocitypowered.api.proxy.ServerConnection conn) || !enabled()) {
-            return;
-        }
+    public void onCompanionEvent(com.velocitypowered.api.proxy.ServerConnection conn, com.google.gson.JsonObject o) {
         String server = conn.getServerInfo().getName();
-        if (excluded(server)) {
+        if (!enabled() || excluded(server)) {
             return;
         }
-        com.google.gson.JsonObject o;
-        try {
-            o = com.google.gson.JsonParser.parseString(
-                    new String(event.getData(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
-        } catch (RuntimeException e) {
-            logger.debug("Ignoring malformed companion message from {}: {}", server, e.toString());
-            return;
-        }
-        companionServers.add(server);
         UUID id = conn.getPlayer().getUniqueId();
         String player = conn.getPlayer().getUsername(); // trust the connection, not the payload
         if (o.has("world") && o.get("world").isJsonPrimitive()) {

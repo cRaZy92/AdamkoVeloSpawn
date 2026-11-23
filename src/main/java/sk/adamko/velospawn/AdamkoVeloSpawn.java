@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import sk.adamko.velospawn.chat.ChatService;
 import sk.adamko.velospawn.chat.DiscordBot;
 import sk.adamko.velospawn.command.AvsCommand;
+import sk.adamko.velospawn.companion.CompanionChannel;
 import sk.adamko.velospawn.command.PlayCommand;
 import sk.adamko.velospawn.config.ConfigLoader;
 import sk.adamko.velospawn.config.PluginConfig;
@@ -21,6 +22,7 @@ import sk.adamko.velospawn.route.Router;
 import sk.adamko.velospawn.route.WaitQueue;
 import sk.adamko.velospawn.season.SeasonManager;
 import sk.adamko.velospawn.store.LastServerStore;
+import sk.adamko.velospawn.store.SeasonStatsStore;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -59,6 +61,8 @@ public final class AdamkoVeloSpawn {
     private ChatService chat;
     private DiscordBot discordBot;
     private MapIdService mapIds;
+    private SeasonStatsStore seasonStats;
+    private CompanionChannel companion;
 
     @Inject
     public AdamkoVeloSpawn(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
@@ -84,12 +88,16 @@ public final class AdamkoVeloSpawn {
         seasons.setWaiterCheck(queue::hasWaiters);
         lastServers = new LastServerStore(dataDirectory.resolve("last-servers.json"), logger, ioExecutor);
         lastServers.load();
+        seasonStats = new SeasonStatsStore(dataDirectory.resolve("season-stats.json"), logger, ioExecutor);
+        seasonStats.load();
         router = new Router(this, proxy, logger, this::config, seasons, queue, lastServers, messages);
         chat = new ChatService(this, proxy, logger, this::config, messages, http);
 
         proxy.getEventManager().register(this, router);
         proxy.getEventManager().register(this, chat);
-        chat.registerChannel();
+        companion = new CompanionChannel(proxy, logger, this::config, chat, seasonStats);
+        proxy.getEventManager().register(this, companion);
+        companion.registerChannel();
         mapIds = new MapIdService(this, proxy, logger, this::config);
         proxy.getEventManager().register(this, mapIds);
         mapIds.start();
@@ -129,6 +137,9 @@ public final class AdamkoVeloSpawn {
         }
         if (lastServers != null) {
             lastServers.save();
+        }
+        if (seasonStats != null) {
+            seasonStats.save();
         }
         ioExecutor.shutdown();
     }

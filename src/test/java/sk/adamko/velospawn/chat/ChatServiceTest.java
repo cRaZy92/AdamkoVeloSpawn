@@ -180,8 +180,8 @@ class ChatServiceTest {
 
     private com.velocitypowered.api.event.connection.PluginMessageEvent fromSeason(FakePlayer p, String json) {
         var e = new com.velocitypowered.api.event.connection.PluginMessageEvent(p.connectionNow(), p.mock,
-                ChatService.BACKEND_EVENTS, json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        net.chat.onPluginMessage(e);
+                sk.adamko.velospawn.companion.CompanionChannel.EVENTS, json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        net.companion.onPluginMessage(e);
         return e;
     }
 
@@ -208,9 +208,9 @@ class ChatServiceTest {
         net.enableChat();
         FakePlayer bob = on("Bob", "s1");
         var e = new com.velocitypowered.api.event.connection.PluginMessageEvent(bob.mock, bob.connectionNow(),
-                ChatService.BACKEND_EVENTS,
+                sk.adamko.velospawn.companion.CompanionChannel.EVENTS,
                 "{\"type\":\"death\",\"text\":\"Admin was banned\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        net.chat.onPluginMessage(e);
+        net.companion.onPluginMessage(e);
         assertTrue(net.discordPosts.isEmpty(), "a modded client can't post to Discord");
         assertTrue(!e.getResult().isAllowed(), "and it doesn't reach the season server either");
     }

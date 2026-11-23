@@ -80,6 +80,8 @@ public final class TestNetwork {
     public final Router router;
     public final ChatService chat;
     public final MapIdService mapIds;
+    public final sk.adamko.velospawn.store.SeasonStatsStore stats;
+    public final sk.adamko.velospawn.companion.CompanionChannel companion;
     /** Every Discord webhook body posted, in order. */
     public final List<com.google.gson.JsonObject> discordPosts = new java.util.concurrent.CopyOnWriteArrayList<>();
 
@@ -138,6 +140,8 @@ public final class TestNetwork {
                 }));
         when(proxy.getChannelRegistrar()).thenReturn(mock(com.velocitypowered.api.proxy.messages.ChannelRegistrar.class));
         mapIds = new MapIdService(plugin, proxy, logger, this::config);
+        stats = new sk.adamko.velospawn.store.SeasonStatsStore(dataDir.resolve("season-stats.json"), logger, Runnable::run);
+        companion = new sk.adamko.velospawn.companion.CompanionChannel(proxy, logger, this::config, chat, stats);
     }
 
     // ------------------------------------------------------------------ config
@@ -291,7 +295,7 @@ public final class TestNetwork {
         router.onServerConnected(connected);
         chat.onServerConnected(connected);
         mapIds.onPostConnect(new com.velocitypowered.api.event.player.ServerPostConnectEvent(p.mock, previous));
-        chat.onPostConnect(new com.velocitypowered.api.event.player.ServerPostConnectEvent(p.mock, previous));
+        companion.onPostConnect(new com.velocitypowered.api.event.player.ServerPostConnectEvent(p.mock, previous));
     }
 
     /** Backend kicks the player (crash, stop, ban): Velocity's fallback sends them to the try server. */
