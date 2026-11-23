@@ -40,7 +40,7 @@ public final class SeasonsCommand implements SimpleCommand {
         menu.entries(current).thenAccept(entries -> {
             Optional<ServerConnection> now = player.getCurrentServer();
             boolean sameServer = now.isPresent() && now.get().getServerInfo().getName().equals(current);
-            if (sameServer && companion.hasCompanion(current)) {
+            if (sameServer && companion.canDrawMenu(current)) {
                 companion.send(now.get(), menu.payload(entries));
             } else {
                 player.sendMessage(menu.chatList(entries));

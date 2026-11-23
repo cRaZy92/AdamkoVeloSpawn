@@ -43,6 +43,11 @@ public final class CompanionChannel {
     private final SeasonStatsStore stats;
     /** Servers the companion has been heard from since the proxy started. */
     private final Set<String> companionServers = ConcurrentHashMap.newKeySet();
+    /**
+     * Servers whose companion can draw the /seasons chest. Only companions with the menu send stats (and
+     * they send them on every arrival), so an older companion still gets the chat list instead of nothing.
+     */
+    private final Set<String> menuServers = ConcurrentHashMap.newKeySet();
     private volatile BiConsumer<Player, String> menuClickHandler = (player, season) -> { };
 
     public CompanionChannel(ProxyServer proxy, Logger logger, Supplier<PluginConfig> config, ChatService chat,
@@ -61,6 +66,11 @@ public final class CompanionChannel {
 
     public boolean hasCompanion(String server) {
         return companionServers.contains(server);
+    }
+
+    /** True once this server's companion has sent stats, i.e. it is new enough to draw the /seasons menu. */
+    public boolean canDrawMenu(String server) {
+        return menuServers.contains(server);
     }
 
     public void setMenuClickHandler(BiConsumer<Player, String> handler) {
@@ -115,6 +125,7 @@ public final class CompanionChannel {
         if (!config.get().isSeason(server)) {
             return;
         }
+        menuServers.add(server);
         try {
             JsonElement top = o.get("topName");
             SeasonStats s = new SeasonStats(

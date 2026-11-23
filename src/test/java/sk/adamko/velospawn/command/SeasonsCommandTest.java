@@ -30,14 +30,28 @@ class SeasonsCommandTest {
                 .toList();
     }
 
+    static final String STATS = "{\"v\":1,\"type\":\"stats\",\"players\":1,\"playtimeTicks\":72000,"
+            + "\"deaths\":0,\"topName\":\"Bob\",\"topTicks\":72000,\"gameTime\":24000,\"collectedAt\":1}";
+
     @Test
     void onASeasonWithCompanionTheMenuGoesToTheServer() {
         net.running("s3");
         FakePlayer bob = net.login("Bob");
-        fromServer(bob, "{\"v\":1,\"type\":\"world\",\"world\":\"world\",\"env\":\"NORMAL\"}");
+        fromServer(bob, STATS);
         command.open(bob.mock);
         assertEquals(1, menusSent(bob, "s3").size(), bob.toBackend.toString());
         assertTrue(bob.chat().isEmpty(), bob.chat().toString());
+    }
+
+    @Test
+    void anOldCompanionWithoutTheMenuGetsTheChatList() {
+        net.running("s3");
+        FakePlayer bob = net.login("Bob");
+        // An older companion only sends world/afk/death/advancement, never stats, and can't draw the chest.
+        fromServer(bob, "{\"v\":1,\"type\":\"world\",\"world\":\"world\",\"env\":\"NORMAL\"}");
+        command.open(bob.mock);
+        assertTrue(menusSent(bob, "s3").isEmpty(), bob.toBackend.toString());
+        assertTrue(String.join("\n", bob.chat()).contains("── Seasons ──"), bob.chat().toString());
     }
 
     @Test
