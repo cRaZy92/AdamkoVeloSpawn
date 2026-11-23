@@ -30,8 +30,12 @@ public final class SeasonsMenu {
 
     public enum LiveState { ONLINE, STARTING, OFFLINE, UNKNOWN }
 
-    /** One season in the menu; {@code icon} is a Minecraft item id, {@code lore} the tooltip lines. */
-    public record Entry(String season, String icon, Component name, List<Component> lore, boolean current) {
+    /**
+     * One season in the menu; {@code icon} is a Minecraft item id, {@code count} the season number shown as
+     * the item count, {@code lore} the tooltip lines.
+     */
+    public record Entry(String season, String icon, int count, Component name, List<Component> lore,
+                        boolean current) {
     }
 
     static final long TICKS_PER_DAY = 24_000;
@@ -110,7 +114,20 @@ public final class SeasonsMenu {
         }
         lore.add(messages.get(current ? "seasons-here" : "seasons-click"));
         Component name = Messages.render("<white>{display}", "display", sc.displayName());
-        return new Entry(sc.name(), sc.icon(), name, List.copyOf(lore), current);
+        return new Entry(sc.name(), sc.icon(), seasonNumber(sc.name()), name, List.copyOf(lore), current);
+    }
+
+    /** The digits in the server name (s3 → 3), as an item count: 1 when there are none, at most 99. */
+    static int seasonNumber(String server) {
+        String digits = server.replaceAll("\\D", "");
+        if (digits.isEmpty()) {
+            return 1;
+        }
+        try {
+            return Math.max(1, Math.min(99, Integer.parseInt(digits)));
+        } catch (NumberFormatException e) {
+            return 99; // more digits than an int holds
+        }
     }
 
     /** A multi-line template: split at newlines first, so each tooltip line is its own component. */
@@ -138,6 +155,7 @@ public final class SeasonsMenu {
             JsonObject item = new JsonObject();
             item.addProperty("season", e.season());
             item.addProperty("icon", e.icon());
+            item.addProperty("count", e.count());
             item.add("name", gson.serializeToTree(e.name()));
             JsonArray lore = new JsonArray();
             e.lore().forEach(line -> lore.add(gson.serializeToTree(line)));

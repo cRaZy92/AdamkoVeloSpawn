@@ -14,7 +14,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Draws the proxy's /seasons menu as a chest. Nothing can be taken out; clicking another season closes
@@ -30,12 +32,8 @@ final class SeasonsMenuView implements Listener {
 
     /** Marks our chests and remembers which season sits in which slot. */
     private static final class Holder implements InventoryHolder {
-        private final List<MenuPayload.Item> items;
+        private final Map<Integer, MenuPayload.Item> bySlot = new HashMap<>();
         private Inventory inventory;
-
-        Holder(List<MenuPayload.Item> items) {
-            this.items = items;
-        }
 
         @Override
         public Inventory getInventory() {
@@ -51,12 +49,14 @@ final class SeasonsMenuView implements Listener {
             plugin.getLogger().fine("Ignoring malformed /seasons menu: " + e);
             return;
         }
-        List<MenuPayload.Item> items = menu.items().subList(0, Math.min(menu.items().size(), MenuPayload.MAX_SIZE));
-        Holder holder = new Holder(items);
+        List<MenuPayload.Item> items = menu.items();
+        int[] slots = MenuPayload.slots(items.size());
+        Holder holder = new Holder();
         Inventory inv = Bukkit.createInventory(holder, MenuPayload.chestSize(items.size()), menu.title());
         holder.inventory = inv;
-        for (int slot = 0; slot < items.size(); slot++) {
-            inv.setItem(slot, icon(items.get(slot)));
+        for (int i = 0; i < slots.length; i++) {
+            holder.bySlot.put(slots[i], items.get(i));
+            inv.setItem(slots[i], icon(items.get(i)));
         }
         player.openInventory(inv);
     }
@@ -66,14 +66,19 @@ final class SeasonsMenuView implements Listener {
         if (material == null || !material.isItem() || material.isAir()) {
             material = Material.PAPER;
         }
+        int count = Math.max(1, Math.min(99, item.count()));
         ItemStack stack = new ItemStack(material);
         stack.editMeta(meta -> {
+            if (count > meta.getMaxStackSize()) {
+                meta.setMaxStackSize(count); // buckets and tools don't stack; let this one show its number
+            }
             meta.displayName(noItalic(item.name()));
             meta.lore(item.lore().stream().map(SeasonsMenuView::noItalic).toList());
             if (item.current()) {
                 meta.setEnchantmentGlintOverride(true);
             }
         });
+        stack.setAmount(count);
         return stack;
     }
 
@@ -90,11 +95,11 @@ final class SeasonsMenuView implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() != event.getInventory()) {
             return;
         }
-        int slot = event.getSlot();
-        if (slot < 0 || slot >= holder.items.size() || holder.items.get(slot).current()) {
+        MenuPayload.Item item = holder.bySlot.get(event.getSlot());
+        if (item == null || item.current()) {
             return;
         }
-        String season = holder.items.get(slot).season();
+        String season = item.season();
         Bukkit.getScheduler().runTask(plugin, () -> {
             player.closeInventory();
             JsonObject click = new JsonObject();

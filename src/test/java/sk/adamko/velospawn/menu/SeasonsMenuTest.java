@@ -100,8 +100,18 @@ class SeasonsMenuTest {
         assertEquals("SAND", s2.get("icon").getAsString());
         assertFalse(s2.get("current").getAsBoolean());
         assertEquals(8, s2.getAsJsonArray("lore").size());
+        assertEquals(2, s2.get("count").getAsInt(), "the season number, shown as the item count");
         assertEquals("41 players",
                 TestNetwork.plain(GsonComponentSerializer.gson().deserializeFromTree(s2.getAsJsonArray("lore").get(2))));
+    }
+
+    @Test
+    void seasonNumberComesFromTheServerName() {
+        assertEquals(3, SeasonsMenu.seasonNumber("s3"));
+        assertEquals(12, SeasonsMenu.seasonNumber("season12"));
+        assertEquals(1, SeasonsMenu.seasonNumber("skyblock"), "no digits: a single item");
+        assertEquals(99, SeasonsMenu.seasonNumber("s150"), "an item shows at most 99");
+        assertEquals(1, SeasonsMenu.seasonNumber("s0"));
     }
 
     @Test
