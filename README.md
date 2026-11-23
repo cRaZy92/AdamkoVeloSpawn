@@ -1,8 +1,8 @@
 # AdamkoVeloSpawn
 
 Velocity plugin (`adamkovelospawn`) that owns where every player goes: routing, on-demand
-season starts via Pelican, the waiting room, idle shutdown and network chat.
-Milestones 1–4 of the original plan are implemented.
+season starts via Pelican, the waiting room, idle shutdown, network chat and the `/seasons` menu.
+Milestones 1–4 of the original plan are implemented, plus the `/seasons` menu from milestone 5.
 
 ## Build
 
@@ -105,6 +105,7 @@ checks off), never by IP — behind a tunnel such as Pangolin every player arriv
 | `/avs start <season>` / `/avs stop <season>` | `adamkovelospawn.admin` | Start (waits until ready) / stop via Pelican |
 | `/avs reload` | `adamkovelospawn.admin` | Reload `config.yml` (old config kept on error) |
 | `/play [season]` | everyone | Go to a season (default: your usual one); starts it if off |
+| `/seasons` | everyone | Every season with its state and history; a chest menu on season servers, a clickable list elsewhere |
 | `/msg <player> <text>` (`/tell`, `/w`, `/whisper`, `/m`), `/r` | everyone | Cross-server private messages — only registered when `chat.enabled: true` |
 
 ## Network chat (milestone 4, `chat.enabled`)
@@ -126,7 +127,7 @@ checks off), never by IP — behind a tunnel such as Pangolin every player arriv
   (Paper 26.x; EssentialsX for AFK) and they are posted too: `🚶 Steve is now AFK!`,
   `⌨️ Steve is no longer AFK!`, `💀 Steve was blown up by Creeper`,
   `🥇 Steve has completed the advancement **Diamonds!**!` (templates `afk`, `afk-return`, `death`,
-  `advancement`). The companion has no config and changes nothing in game. It only forwards what the
+  `advancement`). The companion changes nothing in game (besides drawing the `/seasons` menu). It only forwards what the
   game itself announces (respecting the death/advancement message game rules, skipping recipes and
   vanished players). The proxy only accepts these from a server connection, so a player can't fake one.
 - The companion also reports each player's world, so Discord names read `[Season 2 - Nether] - Steve`
@@ -168,6 +169,26 @@ proxy (nothing to install on the backends):
 - Packet formats are ported from [MapModCompanion](https://github.com/turikhay/MapModCompanion) (MIT;
   see `THIRD_PARTY_NOTICES.md`) and tested against its byte vectors.
 
+## Seasons menu (`/seasons`)
+
+A look back at every season: its years (from `display-name`), whether it is up right now, how many
+people played there, how many in-game days the world ran, the hours everyone played together, the most
+played person and total deaths.
+
+- On a season server with the companion, `/seasons` opens a chest with one item per season (the item is
+  `icon:` under `servers.seasons.<name>`, a Minecraft item id, default `PAPER`). Your current season
+  glows and says "You are here"; clicking another one is the same as `/play <season>`. In the waiting
+  room or the auth limbo (PicoLimbo can't show a chest) you get the same seasons as a chat list: hover
+  for the numbers, click to visit. Opening the menu never starts anything.
+- The numbers come from the companion: it counts its own world at startup and every
+  `stats-interval-minutes` (companion `config.yml`, default 10), through Paper's statistics (play time
+  and deaths per player, the overworld's game time). It can only talk while someone is online, so the
+  first player to arrive carries the latest count. The proxy keeps the newest numbers per season in
+  `plugins/adamkovelospawn/season-stats.json`; finished seasons never need to run again.
+- A season with no numbers yet says "No stats yet". After installing the companion on an old season,
+  start it once (`/avs start s1`) and join it for a moment.
+- Wording is in `messages` (`seasons-*`; the lore templates are split into tooltip lines at `\n`).
+
 ## Messages
 
 All player-facing text is MiniMessage in `config.yml` → `messages`. Placeholders use `{name}`; player
@@ -176,7 +197,7 @@ New keys added in later versions are filled in automatically on load.
 
 ## Automated tests
 
-`./gradlew test` — 98 tests. The core ones run the real `Router`, `WaitQueue`, `SeasonManager` and
+`./gradlew test` — 158 tests (plus `./gradlew :companion:test` for the companion's stats and menu parsing). The core ones run the real `Router`, `WaitQueue`, `SeasonManager` and
 `ChatService` inside a simulated network (`src/test/java/.../testkit`): a fake Pelican panel, a virtual-clock
 scheduler, and mocked Velocity players/servers whose connects fire the same events Velocity does. That
 covers the checklist's logic (prefixed `checklist_` in `RouterTest`) plus timeouts, crashes during startup,
@@ -216,6 +237,14 @@ Use `/avs status` before each test to confirm the starting state; `/avs stop s3`
 12. *(map mods)* With Xaero's Minimap: join s3, walk a bit, `/server s2` — Xaero's shows a separate, empty
     map for s2; back on s3 the s3 map is intact. Die / use a portal: within ~5 s the map is still s3's.
     With JourneyMap or VoxelMap the same, without the delay.
+13. *(seasons menu)* `/seasons` on s3: a chest, s3 glows with "You are here", the state lines match
+    `/avs status`. Nothing in the chest can be taken.
+14. *(seasons menu)* `/seasons` in `waiting`: a chat list; hovering shows the numbers, clicking Season 2
+    runs `/play s2`.
+15. *(seasons menu)* On s3 with s2 off, click Season 2 in the chest: the chest closes, the action bar
+    counts the start, then you are moved.
+16. *(seasons menu)* After a fresh companion install on s1: s1 says "No stats yet" until someone has been
+    on it; then its numbers appear and survive a proxy restart (`season-stats.json`).
 
 ## Cut-over from VelocityPteroPower
 
