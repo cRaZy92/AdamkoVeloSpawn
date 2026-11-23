@@ -47,7 +47,6 @@ public final class Companion extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
-        saveDefaultConfig();
         getServer().getMessenger().registerOutgoingPluginChannel(this, CHANNEL);
         SeasonsMenuView menu = new SeasonsMenuView(this);
         getServer().getPluginManager().registerEvents(menu, this);
@@ -64,7 +63,7 @@ public final class Companion extends JavaPlugin implements Listener {
             }
         });
         stats = new StatsCollector(this);
-        stats.start(getConfig().getLong("stats-interval-minutes", 10));
+        stats.start();
         getServer().getPluginManager().registerEvents(this, this);
         if (getServer().getPluginManager().getPlugin("Essentials") != null) {
             getServer().getPluginManager().registerEvents(new AfkListener(this), this);

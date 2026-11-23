@@ -12,9 +12,9 @@ import java.util.Optional;
 import java.util.logging.Level;
 
 /**
- * Counts this season's players, playtime, deaths and in-game days for the proxy's /seasons menu, at
- * startup and then every few minutes. Plugin messages ride on a player's connection, so a snapshot is
- * sent through whoever is online; with nobody on, the next player to arrive carries it.
+ * Counts this season's players, playtime, deaths and in-game days for the proxy's /seasons menu, once
+ * after startup (seasons restart often thanks to idle shutdown, so that is fresh enough). Plugin messages
+ * ride on a player's connection, so the snapshot is sent through each player as they arrive.
  */
 final class StatsCollector {
 
@@ -25,10 +25,9 @@ final class StatsCollector {
         this.plugin = plugin;
     }
 
-    void start(long intervalMinutes) {
-        long period = Math.max(1, intervalMinutes) * 60 * 20;
-        // First run one tick after enable, when the worlds are loaded.
-        Bukkit.getScheduler().runTaskTimer(plugin, this::collectAndSend, 1L, period);
+    void start() {
+        // One tick after enable, when the worlds are loaded.
+        Bukkit.getScheduler().runTask(plugin, this::collectAndSend);
     }
 
     Optional<SeasonStats> latest() {

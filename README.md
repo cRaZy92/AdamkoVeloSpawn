@@ -180,10 +180,10 @@ played person and total deaths.
   glows and says "You are here"; clicking another one is the same as `/play <season>`. In the waiting
   room or the auth limbo (PicoLimbo can't show a chest) you get the same seasons as a chat list: hover
   for the numbers, click to visit. Opening the menu never starts anything.
-- The numbers come from the companion: it counts its own world at startup and every
-  `stats-interval-minutes` (companion `config.yml`, default 10), through Paper's statistics (play time
-  and deaths per player, the overworld's game time). It can only talk while someone is online, so the
-  first player to arrive carries the latest count. The proxy keeps the newest numbers per season in
+- The numbers come from the companion: it counts its own world once after startup, through Paper's
+  statistics (play time and deaths per player, the overworld's game time). Seasons restart often (idle
+  shutdown), so the live season's numbers are at most one run behind. The companion can only talk while
+  someone is online, so the first player to arrive carries the count. The proxy keeps the newest numbers per season in
   `plugins/adamkovelospawn/season-stats.json`; finished seasons never need to run again.
 - A season with no numbers yet says "No stats yet". After installing the companion on an old season,
   start it once (`/avs start s1`) and join it for a moment.
