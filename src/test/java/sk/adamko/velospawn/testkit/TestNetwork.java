@@ -162,8 +162,7 @@ public final class TestNetwork {
         config(c -> new PluginConfig(c.panelUrl(), c.apiKey(), c.authServer(), c.waitingServer(), c.newest(),
                 c.seasons(), c.rememberLastServer(), c.prestartOnConnect(), c.startupTimeoutSeconds(),
                 c.pollIntervalSeconds(), c.pingTimeoutMs(),
-                new PluginConfig.ChatConfig(true, c.chat().format(), c.chat().joinFormat(), c.chat().leaveFormat(),
-                        c.chat().excludeServers(), withWebhook(c.chat().discord())),
+                c.chat().withEnabled(true, withWebhook(c.chat().discord())),
                 c.messages(), c.mapMods()));
     }
 

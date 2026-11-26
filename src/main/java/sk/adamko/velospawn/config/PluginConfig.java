@@ -43,10 +43,17 @@ public record PluginConfig(
             int idleShutdownMinutes,
             int joinDelaySeconds,
             Integer mapId,
-            String icon) {
+            String icon,
+            String color) {
 
         /** Item material shown for seasons without an {@code icon:} in the /seasons menu. */
         public static final String DEFAULT_ICON = "PAPER";
+
+        /** Seasons without a colour (their name takes the colour of the text around it). */
+        public SeasonConfig(String name, String panelId, String displayName, int idleShutdownMinutes,
+                            int joinDelaySeconds, Integer mapId, String icon) {
+            this(name, panelId, displayName, idleShutdownMinutes, joinDelaySeconds, mapId, icon, "");
+        }
 
         /** Seasons with the default /seasons icon. */
         public SeasonConfig(String name, String panelId, String displayName, int idleShutdownMinutes,
@@ -68,13 +75,32 @@ public record PluginConfig(
             int xaeroResendSeconds) {
     }
 
+    /**
+     * Network chat. The {@code *Format} lines are shown in game to players on the other seasons; an empty
+     * one turns that line off.
+     */
     public record ChatConfig(
             boolean enabled,
             String format,
             String joinFormat,
             String leaveFormat,
             Set<String> excludeServers,
-            DiscordConfig discord) {
+            DiscordConfig discord,
+            String switchFormat,
+            String afkFormat,
+            String afkReturnFormat,
+            String deathFormat,
+            String advancementFormat) {
+
+        public ChatConfig(boolean enabled, String format, String joinFormat, String leaveFormat,
+                          Set<String> excludeServers, DiscordConfig discord) {
+            this(enabled, format, joinFormat, leaveFormat, excludeServers, discord, "", "", "", "", "");
+        }
+
+        public ChatConfig withEnabled(boolean on, DiscordConfig discord) {
+            return new ChatConfig(on, format, joinFormat, leaveFormat, excludeServers, discord,
+                    switchFormat, afkFormat, afkReturnFormat, deathFormat, advancementFormat);
+        }
     }
 
     /**

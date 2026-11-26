@@ -108,7 +108,8 @@ public final class ConfigLoader {
                     n.node("idle-shutdown-minutes").getInt(15),
                     n.node("join-delay-seconds").getInt(5),
                     n.node("map-id").virtual() || n.node("map-id").isNull() ? null : n.node("map-id").getInt(),
-                    n.node("icon").getString(PluginConfig.SeasonConfig.DEFAULT_ICON).trim().toUpperCase(java.util.Locale.ROOT)));
+                    n.node("icon").getString(PluginConfig.SeasonConfig.DEFAULT_ICON).trim().toUpperCase(java.util.Locale.ROOT),
+                    n.node("color").getString("").trim()));
         }
 
         ConfigurationNode chat = root.node("chat");
@@ -118,7 +119,12 @@ public final class ConfigLoader {
                 chat.node("join-format").getString(""),
                 chat.node("leave-format").getString(""),
                 new LinkedHashSet<>(chat.node("exclude-servers").getList(String.class, List.of())),
-                parseDiscord(chat));
+                parseDiscord(chat),
+                chat.node("switch-format").getString(""),
+                chat.node("afk-format").getString(""),
+                chat.node("afk-return-format").getString(""),
+                chat.node("death-format").getString(""),
+                chat.node("advancement-format").getString(""));
 
         ConfigurationNode maps = root.node("map-mods");
         PluginConfig.MapModsConfig mapMods = new PluginConfig.MapModsConfig(

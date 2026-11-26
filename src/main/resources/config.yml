@@ -21,10 +21,12 @@ servers:
   # join-delay-seconds: settle time after the server answers pings.
   # panel-id: the short server ID from the Pelican panel URL (must be filled in).
   # icon: the item shown for the season in the /seasons menu (a Minecraft item id, e.g. GRASS_BLOCK; default PAPER).
+  # color: the season's colour in network chat and join/leave/event lines ("#ffaa00" or a name like gold);
+  #   leave it out to use the line's own colour.
   seasons:
-    s3: { panel-id: "", display-name: "Season 3 · 2026",      idle-shutdown-minutes: 15, join-delay-seconds: 5,  icon: GRASS_BLOCK }
-    s2: { panel-id: "", display-name: "Season 2 · 2024–2026", idle-shutdown-minutes: 15, join-delay-seconds: 15, icon: SAND }
-    s1: { panel-id: "", display-name: "Season 1 · 2023",      idle-shutdown-minutes: 10, join-delay-seconds: 5,  icon: OAK_SAPLING }
+    s3: { panel-id: "", display-name: "Season 3 · 2026",      idle-shutdown-minutes: 15, join-delay-seconds: 5,  icon: GRASS_BLOCK, color: "#ffaa00" }
+    s2: { panel-id: "", display-name: "Season 2 · 2024–2026", idle-shutdown-minutes: 15, join-delay-seconds: 15, icon: SAND,        color: "#55ffff" }
+    s1: { panel-id: "", display-name: "Season 1 · 2023",      idle-shutdown-minutes: 10, join-delay-seconds: 5,  icon: OAK_SAPLING, color: "#55ff55" }
 
 routing:
   remember-last-server: true
@@ -51,9 +53,20 @@ chat:
   enabled: false                      # network chat, /msg, /r, join/leave lines
   # Messages are forwarded to players on OTHER servers; players on the same
   # server see the backend's own chat line (signed chat is never cancelled).
-  format: "<gray>[{server}]</gray> {prefix}{player}<gray>:</gray> {message}"
-  join-format: "<gray>[<green>+</green>] {player} joined {server}"
-  leave-format: "<gray>[<red>-</red>] {player} left the network"
+  # {tag}: the server name in capitals (s3 → S3), in the season's colour, like the Velocitab tab list.
+  format: "<dark_gray>[</dark_gray>{tag}<dark_gray>]</dark_gray> {prefix}{player}<gray>:</gray> {message}"
+  join-format: "<gray>{player} joined <white>{display}</white>"
+  leave-format: "<gray>{player} left <white>{display}</white>"
+  # Shown to everyone not on the destination season (the old season's players saw only "left the game").
+  switch-format: "<gray>{player} moved to <white>{display}</white>"
+  # Season events, shown to players on the OTHER seasons (the player's own season already shows them).
+  # They need the AdamkoVeloSpawn-Companion jar on the seasons. Placeholders as in join-format, plus
+  # {short} {world} {location} (see discord below), {message} (the death message), {advancement} (its title).
+  # Set any of these to "" to keep that event off the other seasons.
+  afk-format: "<dark_gray>[</dark_gray>{tag}<dark_gray>]</dark_gray> <gray>{player} is now AFK"
+  afk-return-format: "<dark_gray>[</dark_gray>{tag}<dark_gray>]</dark_gray> <gray>{player} is no longer AFK"
+  death-format: "<dark_gray>[</dark_gray>{tag}<dark_gray>]</dark_gray> {message}"
+  advancement-format: "<dark_gray>[</dark_gray>{tag}<dark_gray>]</dark_gray> {player} has made the advancement <green>[{advancement}]</green>"
   exclude-servers: [limbo, waiting]
   # Optional Discord mirror via a webhook (Channel settings → Integrations → Webhooks).
   # Each message is posted as the player: the name and avatar below, then the text.

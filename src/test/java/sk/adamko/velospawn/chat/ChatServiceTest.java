@@ -2,6 +2,10 @@ package sk.adamko.velospawn.chat;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.junit.jupiter.api.Test;
 import sk.adamko.velospawn.testkit.TestNetwork;
 import sk.adamko.velospawn.testkit.TestNetwork.FakePlayer;
@@ -46,7 +50,7 @@ class ChatServiceTest {
         FakePlayer cid = on("Cid", "s3");
         FakePlayer dan = on("Dan", "waiting");
         net.chat(ann, "hi <red>all");
-        assertEquals(List.of("[s3] Ann: hi <red>all"), bob.chat());
+        assertEquals(List.of("[S3] Ann: hi <red>all"), bob.chat());
         assertTrue(cid.chat().isEmpty(), "same server sees the backend line, not a duplicate");
         assertTrue(dan.chat().isEmpty(), "waiting room excluded");
         assertTrue(ann.chat().isEmpty());
@@ -71,14 +75,15 @@ class ChatServiceTest {
                 bob.mock, net.server("s2"), null)); // Bob was announced already
         FakePlayer ann = net.login("Ann");
         assertEquals("s3", ann.server);
-        assertEquals(List.of("[+] Ann joined s3"), bob.chat());
+        assertEquals(List.of("Ann joined Season 3 · 2026"), bob.chat());
 
         net.connect(ann, "s2"); // switching seasons is not a new network join
-        assertEquals(1, bob.chat().size());
+        assertEquals(1, bob.chat().size(), "s2 sees its own join line, not a second network one");
 
         net.connect(ann, "s3");
         net.disconnect(ann);
-        assertEquals("[-] Ann left the network", bob.chat().get(1));
+        assertEquals(List.of("Ann joined Season 3 · 2026", "Ann moved to Season 3 · 2026", "Ann left Season 3 · 2026"),
+                bob.chat());
     }
 
     @Test
@@ -201,6 +206,84 @@ class ChatServiceTest {
                 "[Season 1] - Bob | 💀 Bob was blown up by Creeper",
                 "[Season 1] - Bob | 🥇 Bob has completed the advancement **Diamonds!**!"), net.discord());
         assertTrue(!e.getResult().isAllowed(), "consumed by the proxy, never forwarded to the client");
+    }
+
+    @Test
+    void afkDeathsAndAdvancementsAreShownOnTheOtherSeasons() {
+        net.enableChat();
+        net.running("s1");
+        FakePlayer bob = on("Bob", "s1");
+        FakePlayer cid = on("Cid", "s1");
+        FakePlayer ann = on("Ann", "s3");
+        FakePlayer dan = on("Dan", "waiting");
+        fromSeason(bob, "{\"v\":1,\"type\":\"afk\",\"afk\":true}");
+        fromSeason(bob, "{\"v\":1,\"type\":\"afk\",\"afk\":false}");
+        fromSeason(bob, "{\"v\":1,\"type\":\"death\",\"text\":\"Bob was blown up by <red>Creeper\"}");
+        fromSeason(bob, "{\"v\":1,\"type\":\"advancement\",\"text\":\"Diamonds!\"}");
+        assertEquals(List.of(
+                "[S1] Bob is now AFK",
+                "[S1] Bob is no longer AFK",
+                "[S1] Bob was blown up by <red>Creeper",
+                "[S1] Bob has made the advancement [Diamonds!]"), ann.chat());
+        assertTrue(cid.chat().isEmpty(), "Bob's own season already shows its events");
+        assertTrue(dan.chat().isEmpty(), "waiting room excluded");
+    }
+
+    @Test
+    void seasonSwitchIsShownEverywhereButTheDestination() {
+        net.enableChat();
+        net.running("s3");
+        net.running("s2");
+        FakePlayer bob = on("Bob", "s2");
+        FakePlayer cid = on("Cid", "s3");
+        for (FakePlayer p : List.of(bob, cid)) {
+            net.chat.onServerConnected(new com.velocitypowered.api.event.player.ServerConnectedEvent(
+                    p.mock, net.server(p.server), null));
+        }
+        int cidBefore = cid.chat().size();
+        int bobBefore = bob.chat().size();
+        FakePlayer ann = net.login("Ann");          // joins s3
+        net.connect(ann, "s2");
+        assertEquals(List.of("Ann moved to Season 2 · 2024–2026"), cid.chat().subList(cidBefore, cid.chat().size()), "s3 learns where she went");
+        assertEquals(List.of("Ann joined Season 3 · 2026"), bob.chat().subList(bobBefore, bob.chat().size()), "s2 sees its own join line instead");
+    }
+
+    /** The colour of the first piece of text in a line that equals {@code text}, or null. */
+    private static TextColor colorOf(Component line, String text) {
+        if (line instanceof TextComponent t && t.content().equals(text)) {
+            return t.color();
+        }
+        for (var child : line.children()) {
+            var c = colorOf(child, text);
+            if (c != null) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    @Test
+    void seasonNamesTakeTheirConfiguredColour() {
+        net.enableChat();
+        net.running("s3");
+        FakePlayer bob = on("Bob", "s2");
+        FakePlayer cid = on("Cid", "s3");
+        net.chat.onServerConnected(new com.velocitypowered.api.event.player.ServerConnectedEvent(
+                bob.mock, net.server("s2"), null));
+        net.login("Ann");
+        net.chat(cid, "hi");
+        assertEquals(TextColor.fromHexString("#ffaa00"),
+                colorOf(bob.chatLines.get(0), "Season 3 · 2026"), "join line");
+        assertEquals(TextColor.fromHexString("#ffaa00"),
+                colorOf(bob.chatLines.get(1), "S3"), "chat prefix");
+    }
+
+    @Test
+    void seasonColourAcceptsHexAndNames() {
+        assertEquals(NamedTextColor.GOLD, ChatService.parseColor("Gold"));
+        assertEquals(TextColor.color(0x55ffff), ChatService.parseColor(" #55FFFF "));
+        assertEquals(null, ChatService.parseColor(""));
+        assertEquals(null, ChatService.parseColor("purplish"));
     }
 
     @Test

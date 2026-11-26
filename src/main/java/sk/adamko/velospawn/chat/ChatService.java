@@ -19,6 +19,7 @@ import com.velocitypowered.api.scheduler.ScheduledTask;
 import sk.adamko.velospawn.chat.DiscordRelay.Place;
 
 import java.net.http.HttpClient;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -118,8 +119,9 @@ public final class ChatService {
         }
         PluginConfig cfg = config.get();
         Component line = Messages.render(cfg.chat().format(),
-                "server", server.get(),
-                "display", display(server.get()),
+                "server", tinted(server.get(), server.get()),
+                "tag", tinted(server.get(), tag(server.get())),
+                "display", tinted(server.get(), display(server.get())),
                 "prefix", prefix(player),
                 "player", player.getUsername(),
                 "message", event.getMessage());
@@ -145,13 +147,16 @@ public final class ChatService {
         if (previous != null) {
             if (!previous.equals(server)) {
                 Place from = Place.of(previous, display(previous));
+                broadcastToOthers(eventLine(config.get().chat().switchFormat(), player, Place.of(server, display(server)),
+                        "from", tinted(previous, previous), "from_display", tinted(previous, display(previous))), server);
                 announceOnDiscord(id, server, at -> discord.switchServer(player.getUsername(), from, at));
             }
             return;
         }
         Component line = Messages.render(config.get().chat().joinFormat(),
                 "player", player.getUsername(), "prefix", prefix(player),
-                "server", server, "display", display(server));
+                "server", tinted(server, server), "tag", tinted(server, tag(server)),
+                "display", tinted(server, display(server)));
         broadcastToOthers(line, server);
         announceOnDiscord(id, server, at -> discord.join(player.getUsername(), at));
     }
@@ -207,7 +212,8 @@ public final class ChatService {
         }
         Component line = Messages.render(config.get().chat().leaveFormat(),
                 "player", player.getUsername(), "prefix", prefix(player),
-                "server", server, "display", display(server));
+                "server", tinted(server, server), "tag", tinted(server, tag(server)),
+                "display", tinted(server, display(server)));
         broadcastToOthers(line, server);
         discord.leave(player.getUsername(), at);
     }
@@ -238,18 +244,26 @@ public final class ChatService {
         String type = o.has("type") ? o.get("type").getAsString() : "";
         String text = o.has("text") ? o.get("text").getAsString() : "";
         Place at = place(id, server);
+        PluginConfig.ChatConfig chat = config.get().chat();
+        Player who = conn.getPlayer();
         switch (type) {
             case "world" -> {
                 // only updates the world shown in later posts
             }
-            case "afk" -> discord.afk(player, at, o.has("afk") && o.get("afk").getAsBoolean());
+            case "afk" -> {
+                boolean afk = o.has("afk") && o.get("afk").getAsBoolean();
+                broadcastToOthers(eventLine(afk ? chat.afkFormat() : chat.afkReturnFormat(), who, at), server);
+                discord.afk(player, at, afk);
+            }
             case "death" -> {
                 if (!text.isBlank()) {
+                    broadcastToOthers(eventLine(chat.deathFormat(), who, at, "message", text), server);
                     discord.death(player, at, text);
                 }
             }
             case "advancement" -> {
                 if (!text.isBlank()) {
+                    broadcastToOthers(eventLine(chat.advancementFormat(), who, at, "advancement", text), server);
                     discord.advancement(player, at, text);
                 }
             }
@@ -279,6 +293,35 @@ public final class ChatService {
             }
         }
         logger.info("[discord] {}: {}", message.name(), message.text());
+    }
+
+    /** An in-game event line; the server's own players already saw the event, so it goes to the others. */
+    private Component eventLine(String template, Player player, Place at, Object... extra) {
+        if (template == null || template.isBlank()) {
+            return Component.empty();
+        }
+        Map<String, Object> vars = new java.util.LinkedHashMap<>();
+        vars.put("player", player.getUsername());
+        vars.put("prefix", prefix(player));
+        vars.put("server", tinted(at.server(), at.server()));
+        vars.put("tag", tinted(at.server(), tag(at.server())));
+        vars.put("display", tinted(at.server(), at.display()));
+        vars.put("short", tinted(at.server(), DiscordRelay.shortName(at.display())));
+        vars.put("world", at.world());
+        vars.put("location", tinted(at.server(), DiscordRelay.location(at)));
+        for (String k : List.of("message", "advancement", "from", "from_display")) {
+            vars.put(k, "");
+        }
+        for (int i = 0; i + 1 < extra.length; i += 2) {
+            vars.put(String.valueOf(extra[i]), extra[i + 1]);
+        }
+        Object[] kv = new Object[vars.size() * 2];
+        int i = 0;
+        for (Map.Entry<String, Object> e : vars.entrySet()) {
+            kv[i++] = e.getKey();
+            kv[i++] = e.getValue();
+        }
+        return Messages.render(template, kv);
     }
 
     /** Everyone on a non-excluded server other than {@code sourceServer} (they already saw it locally). */
@@ -317,6 +360,29 @@ public final class ChatService {
 
     private boolean excluded(String server) {
         return config.get().chat().excludeServers().contains(server);
+    }
+
+    /** The short tag the tab list shows for a server: its name in capitals (s3 → S3). */
+    static String tag(String server) {
+        return server.toUpperCase(java.util.Locale.ROOT);
+    }
+
+    /** Text in the season's {@code color}, or plain (taking the surrounding colour) when it has none. */
+    private Component tinted(String server, String text) {
+        PluginConfig.SeasonConfig sc = config.get().season(server);
+        net.kyori.adventure.text.format.TextColor color = sc == null ? null : parseColor(sc.color());
+        return color == null ? Component.text(text) : Component.text(text, color);
+    }
+
+    static net.kyori.adventure.text.format.TextColor parseColor(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String c = raw.trim().toLowerCase(java.util.Locale.ROOT);
+        if (c.startsWith("#")) {
+            return net.kyori.adventure.text.format.TextColor.fromHexString(c);
+        }
+        return net.kyori.adventure.text.format.NamedTextColor.NAMES.value(c);
     }
 
     private String display(String server) {

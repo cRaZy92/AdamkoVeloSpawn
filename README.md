@@ -116,6 +116,12 @@ checks off), never by IP — behind a tunnel such as Pangolin every player arriv
 - `{prefix}` comes from LuckPerms (soft dependency; `&`/`§` legacy codes or MiniMessage).
 - Servers in `exclude-servers` (limbo, waiting) neither send nor receive network chat.
 - Network join line when a player first reaches a season; leave line on disconnect (sent to other servers).
+- Season switches, AFK, deaths and advancements are shown in game on the other seasons too
+  (`switch-format`, `afk-format`, `afk-return-format`, `death-format`, `advancement-format`; `""` turns one off).
+  The player's own season already shows its events, so it doesn't get a duplicate. All but switches need the companion (below).
+- `color:` on a season (`servers.seasons.<name>`, `"#ffaa00"` or a name like `gold`) colours its name in these
+  lines and in the chat prefix `[S3]` (`{tag}`: the server name in capitals), matching the Velocitab tab list.
+  Without it the name takes the line's colour.
 - `chat.discord`: optional webhook mirror in the EssentialsX Discord style. Each post appears as the
   player (`[Season 1 - Nether] - Steve`, with their head from mc-heads.net as the avatar): `➡️ Steve has joined Season 1 · 2023!`,
   `🔀 Steve moved to Season 2`, `⬅️ Steve has left!` and their chat messages. Trips through the waiting
